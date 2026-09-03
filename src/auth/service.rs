@@ -67,8 +67,15 @@ pub fn validate_token(token: &str, _config: &JwtConfig) -> ApiResult<Claims> {
     // Para fins de desenvolvimento local, estamos utilizando o decode inseguro (apenas validando claims e expiração).
     // Em produção, deve-se implementar a validação buscando o JWKS (JSON Web Key Set) da URL do Supabase.
     
-    let token_data = jsonwebtoken::dangerous_insecure_decode::<Claims>(token)
-        .map_err(|_| ApiError::Unauthorized)?;
+    let mut validation = jsonwebtoken::Validation::default();
+    validation.insecure_disable_signature_validation();
+    validation.required_spec_claims.clear();
+    
+    let token_data = jsonwebtoken::decode::<Claims>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(&[]),
+        &validation
+    ).map_err(|_| ApiError::Unauthorized)?;
 
     // Validação manual de expiração
     let now = std::time::SystemTime::now()
