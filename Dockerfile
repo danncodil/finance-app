@@ -29,8 +29,8 @@ COPY .sqlx/ .sqlx/
 
 # Habilita o modo offline do SQLx para não precisar de conexão
 # com o banco de dados durante a compilação dentro do Docker.
-# (Comentado temporariamente para o Render tentar compilar online com a DATABASE_URL)
-# ENV SQLX_OFFLINE=true
+# (Gerado previamente com: cargo sqlx prepare)
+ENV SQLX_OFFLINE=true
 
 # Força a recompilação do nosso binário (não das deps em cache)
 RUN touch src/main.rs && cargo build --release

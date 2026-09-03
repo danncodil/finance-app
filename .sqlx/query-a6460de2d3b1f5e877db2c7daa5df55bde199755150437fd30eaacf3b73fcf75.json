@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH new_ach AS (\n            INSERT INTO achievements (name, description, icon_slug, xp_reward, rule_type)\n            SELECT $1, $2, $3, $4, $5::varchar\n            WHERE NOT EXISTS (SELECT 1 FROM achievements WHERE rule_type = $5::varchar)\n            RETURNING id, name, description, icon_slug, xp_reward, rule_type, rule_value, created_at as unlocked_at\n        )\n        SELECT \n            id as \"id!\", name as \"name!\", description as \"description!\", \n            icon_slug as \"icon_slug!\", xp_reward as \"xp_reward!\", \n            rule_type as \"rule_type!\", rule_value, unlocked_at as \"unlocked_at!\"\n        FROM new_ach\n        UNION ALL\n        SELECT \n            id as \"id!\", name as \"name!\", description as \"description!\", \n            icon_slug as \"icon_slug!\", xp_reward as \"xp_reward!\", \n            rule_type as \"rule_type!\", rule_value, created_at as \"unlocked_at!\"\n        FROM achievements WHERE rule_type = $5::varchar\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "icon_slug!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "xp_reward!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "rule_type!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "rule_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "unlocked_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Int4",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a6460de2d3b1f5e877db2c7daa5df55bde199755150437fd30eaacf3b73fcf75"
+}

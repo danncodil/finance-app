@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(DISTINCT transaction_date) \n        FROM transactions \n        WHERE user_id = $1 \n          AND transaction_date >= $2::date - INTERVAL '2 days'\n          AND transaction_date <= $2::date\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9337dc6ab97c3914d8a58620c7b838d27796084954f427fc95d48d9e3ea43b4b"
+}
