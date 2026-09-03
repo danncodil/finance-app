@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, name, description, budget, status as \"status: ProjectStatus\", created_at, updated_at\n        FROM projects\n        WHERE id = $1 AND user_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "budget",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: ProjectStatus",
+        "type_info": {
+          "Custom": {
+            "name": "project_status",
+            "kind": {
+              "Enum": [
+                "active",
+                "completed",
+                "paused",
+                "cancelled"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0f8422966d18c31885fb128b030a7c12ccc0a0af3a4e6f4528016419344dfe34"
+}

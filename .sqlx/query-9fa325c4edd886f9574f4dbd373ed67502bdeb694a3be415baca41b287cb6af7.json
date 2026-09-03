@@ -1,0 +1,174 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO transactions\n                    (id, user_id, category_id, type, amount, description, transaction_date,\n                     type_recurrence, installment_current, installment_total, parent_id,\n                     profile_type, project_id)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n                RETURNING\n                    id, category_id,\n                    type            as \"type: TransactionType\",\n                    amount, description, transaction_date, created_at, updated_at,\n                    type_recurrence as \"type_recurrence: RecurrenceType\",\n                    installment_current, installment_total, parent_id,\n                    profile_type    as \"profile_type: ProfileType\",\n                    project_id\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "type: TransactionType",
+        "type_info": {
+          "Custom": {
+            "name": "transaction_type",
+            "kind": {
+              "Enum": [
+                "income",
+                "expense"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "type_recurrence: RecurrenceType",
+        "type_info": {
+          "Custom": {
+            "name": "recurrence_type",
+            "kind": {
+              "Enum": [
+                "unique",
+                "installment",
+                "subscription"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "installment_current",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "installment_total",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "profile_type: ProfileType",
+        "type_info": {
+          "Custom": {
+            "name": "profile_type",
+            "kind": {
+              "Enum": [
+                "PERSONAL",
+                "BUSINESS"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "project_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "transaction_type",
+            "kind": {
+              "Enum": [
+                "income",
+                "expense"
+              ]
+            }
+          }
+        },
+        "Numeric",
+        "Varchar",
+        "Date",
+        {
+          "Custom": {
+            "name": "recurrence_type",
+            "kind": {
+              "Enum": [
+                "unique",
+                "installment",
+                "subscription"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int4",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "profile_type",
+            "kind": {
+              "Enum": [
+                "PERSONAL",
+                "BUSINESS"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "9fa325c4edd886f9574f4dbd373ed67502bdeb694a3be415baca41b287cb6af7"
+}

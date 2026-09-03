@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            a.id, a.name, a.description, a.icon_slug, a.xp_reward, \n            a.rule_type, a.rule_value, ua.unlocked_at\n        FROM achievements a\n        INNER JOIN user_achievements ua ON a.id = ua.achievement_id\n        WHERE ua.user_id = $1\n        ORDER BY ua.unlocked_at DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "icon_slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "xp_reward",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "rule_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "rule_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "unlocked_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "548f2e56ca14a31c72386e5bd5f028547082efb609d3276e3573f0a3cf7c833e"
+}

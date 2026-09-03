@@ -1,0 +1,10 @@
+# ══════════════════════════════════════════════════════════════
+# Backend Rust — .dockerignore
+# Exclui artefatos pesados que não precisam ir pro contexto
+# ══════════════════════════════════════════════════════════════
+target/
+web/
+.git/
+.env
+*.md
+docker-compose.yml

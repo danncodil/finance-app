@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            COALESCE(SUM(amount) FILTER (WHERE type = 'income'), 0) as income,\n            COALESCE(SUM(amount) FILTER (WHERE type = 'expense'), 0) as expense\n        FROM transactions\n        WHERE user_id = $1\n          AND EXTRACT(YEAR FROM transaction_date) = $2\n          AND EXTRACT(MONTH FROM transaction_date) = $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "income",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "expense",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "18b5d33a4f23d1e1c290d412b75bd6ad96ccbaf92642f915e052edb89210cd0a"
+}

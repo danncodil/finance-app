@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT name, color, icon\n        FROM categories\n        WHERE id = $1 AND user_id = $2 AND is_active = true\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "color",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "icon",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f3b4edadc586173927b72610344cc4475e5be47a886149f9ee4c1ba5c3a9deda"
+}

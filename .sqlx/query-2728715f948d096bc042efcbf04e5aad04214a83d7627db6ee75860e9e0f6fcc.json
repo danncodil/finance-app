@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT xp_points, current_level\n        FROM user_gamification\n        WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "xp_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "current_level",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2728715f948d096bc042efcbf04e5aad04214a83d7627db6ee75860e9e0f6fcc"
+}
