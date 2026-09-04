@@ -11,6 +11,7 @@ pub struct AppConfig {
     pub database: DatabaseConfig,
     pub jwt: JwtConfig,
     pub gemini: GeminiConfig,
+    pub cors_origin: String,
 }
 
 /// Configuração de conexão com o PostgreSQL.
@@ -68,6 +69,8 @@ impl AppConfig {
                 api_key: env::var("GEMINI_API_KEY")
                     .unwrap_or_else(|_| "MISSING_API_KEY".to_string()),
             },
+            cors_origin: env::var("CORS_ORIGIN")
+                .unwrap_or_else(|_| "*".to_string()),
         }
     }
 }

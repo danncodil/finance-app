@@ -34,6 +34,8 @@ use crate::config::AppConfig;
 pub struct AppState {
     pub pool: PgPool,
     pub config: Arc<AppConfig>,
+    /// Cliente HTTP reutilizável (connection pooling para chamadas externas, ex: Gemini).
+    pub http_client: reqwest::Client,
 }
 
 // ── Health check ────────────────────────────────────────────────────────
@@ -63,10 +65,9 @@ fn build_router(state: AppState) -> Router {
     // Rotas de autenticação
     let auth_routes = Router::new()
         .route("/register", axum::routing::post(auth::handler::register))
-        .route("/login", axum::routing::post(auth::handler::login));
-        // TODO: montar o restante quando implementado
-        // .route("/refresh",  axum::routing::post(auth::handler::refresh))
-        // .route("/logout",   axum::routing::post(auth::handler::logout))
+        .route("/login", axum::routing::post(auth::handler::login))
+        .route("/refresh", axum::routing::post(auth::handler::refresh))
+        .route("/logout", axum::routing::post(auth::handler::logout));
 
     // Rotas de usuários (protegidas)
     let user_routes = Router::new()
@@ -103,21 +104,38 @@ fn build_router(state: AppState) -> Router {
         // Gamificação
         .route("/gamification/status", axum::routing::get(gamification::handler::status));
 
+    // Monta o layer de CORS baseado na configuração do ambiente
+    let cors = if state.config.cors_origin == "*" {
+        CorsLayer::new()
+            .allow_origin(tower_http::cors::Any)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::PATCH,
+                Method::DELETE,
+            ])
+            .allow_headers(tower_http::cors::Any)
+    } else {
+        let origin: HeaderValue = state.config.cors_origin
+            .parse()
+            .expect("CORS_ORIGIN deve ser uma URL válida (ex: http://localhost:5173)");
+        CorsLayer::new()
+            .allow_origin(origin)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::PATCH,
+                Method::DELETE,
+            ])
+            .allow_headers(tower_http::cors::Any)
+    };
+
     // Monta a árvore completa sob /api/v1
     Router::new()
         .nest("/api/v1", api_v1_routes)
-        .layer(
-            CorsLayer::new()
-                .allow_origin(tower_http::cors::Any)
-                .allow_methods([
-                    Method::GET,
-                    Method::POST,
-                    Method::PUT,
-                    Method::PATCH,
-                    Method::DELETE,
-                ])
-                .allow_headers(tower_http::cors::Any),
-        )
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
@@ -159,6 +177,7 @@ async fn main() {
     let state = AppState {
         pool,
         config: Arc::new(config),
+        http_client: reqwest::Client::new(),
     };
 
     // 7. Constrói o router com todas as rotas

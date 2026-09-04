@@ -6,7 +6,7 @@ use crate::{
     auth::{
         middleware::AuthUser,
         model::{
-            AuthResponse, LoginRequest, RegisterRequest, UpdatePasswordRequest,
+            AuthResponse, LoginRequest, RefreshRequest, RegisterRequest, UpdatePasswordRequest,
             UpdateProfileRequest, UserDto,
         },
         service,
@@ -64,8 +64,22 @@ pub async fn register(
     // 4. Gera tokens JWT (access)
     let access_token = service::generate_access_token(user_record.id, &state.config.jwt)?;
     
-    // 5. Gera refresh token (Simulação por enquanto - será salvo no BD na rotação completa)
+    // 5. Gera refresh token e salva no banco
     let refresh_token = Uuid::new_v4().to_string();
+    let hashed_rt = service::hash_refresh_token(&refresh_token);
+    let expires_at = chrono::Utc::now() + chrono::Duration::days(state.config.jwt.refresh_expiration_days);
+    
+    sqlx::query!(
+        r#"
+        INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+        user_record.id,
+        hashed_rt,
+        expires_at
+    )
+    .execute(&state.pool)
+    .await?;
 
     // 6. Monta resposta
     let response = AuthResponse {
@@ -120,8 +134,22 @@ pub async fn login(
     // 5. Gera tokens JWT (access)
     let access_token = service::generate_access_token(user_record.id, &state.config.jwt)?;
     
-    // 6. Gera refresh token (Simulação por enquanto)
+    // 6. Gera refresh token e salva no banco
     let refresh_token = Uuid::new_v4().to_string();
+    let hashed_rt = service::hash_refresh_token(&refresh_token);
+    let expires_at = chrono::Utc::now() + chrono::Duration::days(state.config.jwt.refresh_expiration_days);
+    
+    sqlx::query!(
+        r#"
+        INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+        user_record.id,
+        hashed_rt,
+        expires_at
+    )
+    .execute(&state.pool)
+    .await?;
 
     // 7. Monta resposta
     let response = AuthResponse {
@@ -136,6 +164,125 @@ pub async fn login(
     };
 
     Ok(Json(response))
+}
+
+/// POST /api/v1/auth/refresh
+/// Gera um novo access_token a partir de um refresh_token válido.
+/// Por segurança, geramos um novo refresh_token (rotação) e revogamos o antigo.
+pub async fn refresh(
+    State(state): State<AppState>,
+    Json(payload): Json<RefreshRequest>,
+) -> ApiResult<Json<AuthResponse>> {
+    if let Err(e) = payload.validate() {
+        return Err(ApiError::BadRequest(e.to_string()));
+    }
+
+    let hashed_rt = service::hash_refresh_token(&payload.refresh_token);
+
+    // Busca o token no banco
+    let token_record = sqlx::query!(
+        r#"
+        SELECT id, user_id, expires_at, revoked
+        FROM refresh_tokens
+        WHERE token_hash = $1
+        "#,
+        hashed_rt
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(ApiError::Unauthorized)?;
+
+    if token_record.revoked {
+        return Err(ApiError::Unauthorized);
+    }
+
+    if token_record.expires_at < chrono::Utc::now() {
+        return Err(ApiError::Unauthorized);
+    }
+
+    // Busca o usuário
+    let user_record = sqlx::query!(
+        r#"
+        SELECT id, name, email, created_at, is_active
+        FROM users
+        WHERE id = $1
+        "#,
+        token_record.user_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(ApiError::Unauthorized)?;
+
+    if !user_record.is_active {
+        return Err(ApiError::Forbidden);
+    }
+
+    // Revoga o token atual (rotação)
+    sqlx::query!(
+        "UPDATE refresh_tokens SET revoked = true WHERE id = $1",
+        token_record.id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    // Gera novos tokens
+    let access_token = service::generate_access_token(user_record.id, &state.config.jwt)?;
+    
+    let new_refresh_token = Uuid::new_v4().to_string();
+    let new_hashed_rt = service::hash_refresh_token(&new_refresh_token);
+    let expires_at = chrono::Utc::now() + chrono::Duration::days(state.config.jwt.refresh_expiration_days);
+    
+    sqlx::query!(
+        r#"
+        INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+        user_record.id,
+        new_hashed_rt,
+        expires_at
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let response = AuthResponse {
+        user: UserDto {
+            id: user_record.id,
+            name: user_record.name,
+            email: user_record.email,
+            created_at: user_record.created_at,
+        },
+        access_token,
+        refresh_token: new_refresh_token,
+    };
+
+    Ok(Json(response))
+}
+
+/// POST /api/v1/auth/logout
+/// Revoga o refresh_token informado, invalidando-o para uso futuro.
+pub async fn logout(
+    State(state): State<AppState>,
+    Json(payload): Json<RefreshRequest>,
+) -> ApiResult<StatusCode> {
+    if let Err(e) = payload.validate() {
+        return Err(ApiError::BadRequest(e.to_string()));
+    }
+
+    let hashed_rt = service::hash_refresh_token(&payload.refresh_token);
+
+    let result = sqlx::query!(
+        "UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1",
+        hashed_rt
+    )
+    .execute(&state.pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        // Se o token não existia ou já estava revogado, não expomos erro para não vazar info.
+        return Ok(StatusCode::NO_CONTENT);
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// GET /api/v1/users/profile

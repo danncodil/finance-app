@@ -58,3 +58,9 @@ pub struct UpdatePasswordRequest {
     #[validate(length(min = 6, message = "A nova senha deve ter no mínimo 6 caracteres"))]
     pub new_password: String,
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct RefreshRequest {
+    #[validate(length(min = 1, message = "O token de refresh é obrigatório"))]
+    pub refresh_token: String,
+}

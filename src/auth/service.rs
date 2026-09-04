@@ -2,7 +2,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
@@ -61,23 +61,16 @@ pub fn generate_access_token(user_id: Uuid, config: &JwtConfig) -> ApiResult<Str
 }
 
 /// Valida um JWT Access Token e retorna as Claims se for válido.
-pub fn validate_token(token: &str, _config: &JwtConfig) -> ApiResult<Claims> {
-    // IMPORTANTE: Devido à rotação do Supabase para chaves assimétricas (ECC P-256 / ES256),
-    // a validação de assinatura com chave secreta simétrica (HS256) irá falhar.
-    // Para fins de desenvolvimento local, estamos utilizando o decode inseguro (apenas validando claims e expiração).
-    // Em produção, deve-se implementar a validação buscando o JWKS (JSON Web Key Set) da URL do Supabase.
-    
-    let mut validation = jsonwebtoken::Validation::default();
-    validation.insecure_disable_signature_validation();
-    validation.required_spec_claims.clear();
+pub fn validate_token(token: &str, config: &JwtConfig) -> ApiResult<Claims> {
+    let validation = jsonwebtoken::Validation::default();
     
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(&[]),
+        &jsonwebtoken::DecodingKey::from_secret(config.secret.as_bytes()),
         &validation
     ).map_err(|_| ApiError::Unauthorized)?;
 
-    // Validação manual de expiração
+    // Validação manual de expiração (opcional, o jsonwebtoken::decode já valida se expiração estiver na struct Claims e Validation default)
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -88,4 +81,13 @@ pub fn validate_token(token: &str, _config: &JwtConfig) -> ApiResult<Claims> {
     }
 
     Ok(token_data.claims)
+}
+
+/// Faz o hash de um token de refresh (SHA256) antes de armazenar no banco.
+pub fn hash_refresh_token(token: &str) -> String {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    let result = hasher.finalize();
+    hex::encode(result)
 }

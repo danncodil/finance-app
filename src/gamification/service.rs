@@ -52,9 +52,13 @@ pub async fn try_unlock_achievement(
 
     if insert_res.rows_affected() > 0 {
         sqlx::query!(
-            "INSERT INTO user_gamification (user_id, xp_points, current_level)
-             VALUES ($1, $2, 1)
-             ON CONFLICT (user_id) DO UPDATE SET xp_points = user_gamification.xp_points + EXCLUDED.xp_points",
+            r#"
+            INSERT INTO user_gamification (user_id, xp_points, current_level)
+            VALUES ($1, $2, 1)
+            ON CONFLICT (user_id) DO UPDATE SET
+                xp_points = user_gamification.xp_points + EXCLUDED.xp_points,
+                current_level = 1 + ((user_gamification.xp_points + EXCLUDED.xp_points) / 200)
+            "#,
             user_id,
             achievement.xp_reward
         )

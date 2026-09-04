@@ -1,5 +1,4 @@
 use axum::{extract::State, Json};
-use reqwest::Client;
 
 use crate::{
     auth::middleware::AuthUser,
@@ -24,10 +23,11 @@ pub async fn parse_text(
             "GEMINI_API_KEY não configurada no servidor."
         )));
     }
-let url = format!(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}",
-    api_key.trim()
-);
+
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}",
+        api_key.trim()
+    );
 
     let system_prompt = r#"
 Você é um extrator de dados financeiros especializado.
@@ -58,8 +58,9 @@ REGRAS RÍGIDAS:
         }),
     };
 
-    let client = Client::new();
-    let res = client
+    // Reutiliza o cliente HTTP compartilhado (connection pooling)
+    let res = state
+        .http_client
         .post(&url)
         .json(&request_body)
         .send()
@@ -91,10 +92,43 @@ REGRAS RÍGIDAS:
             ApiError::Internal(anyhow::anyhow!("Resposta da Gemini veio vazia ou inválida."))
         })?;
 
-// Deserializa o retorno direto para o struct do model
+    // Extrai o JSON de forma robusta: remove markdown fences e localiza o objeto { ... }
     let text_limpo = text_result.replace("```json", "").replace("```", "");
-    let parsed_tx: ParsedTransaction = serde_json::from_str(text_limpo.trim())
-        .map_err(|_| ApiError::Internal(anyhow::anyhow!("JSON inválido retornado pela IA")))?;
+    let json_str = extract_json_object(&text_limpo).unwrap_or_else(|| text_limpo.trim().to_string());
+
+    let parsed_tx: ParsedTransaction = serde_json::from_str(&json_str)
+        .map_err(|e| {
+            tracing::error!("JSON inválido retornado pela IA: {:?} — texto: {}", e, json_str);
+            ApiError::Internal(anyhow::anyhow!("JSON inválido retornado pela IA"))
+        })?;
 
     Ok(Json(parsed_tx))
+}
+
+/// Extrai o primeiro objeto JSON `{ ... }` encontrado na string,
+/// lidando com casos onde o modelo coloca texto extra em volta.
+fn extract_json_object(input: &str) -> Option<String> {
+    let start = input.find('{')?;
+    let mut depth = 0;
+    let mut end = start;
+
+    for (i, ch) in input[start..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = start + i;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if depth == 0 {
+        Some(input[start..=end].to_string())
+    } else {
+        None
+    }
 }
