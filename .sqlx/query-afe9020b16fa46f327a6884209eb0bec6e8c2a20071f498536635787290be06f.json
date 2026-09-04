@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO user_gamification (user_id, xp_points, current_level)\n            VALUES ($1, $2, 1)\n            ON CONFLICT (user_id) DO UPDATE SET\n                xp_points = user_gamification.xp_points + EXCLUDED.xp_points,\n                current_level = 1 + ((user_gamification.xp_points + EXCLUDED.xp_points) / 200)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "afe9020b16fa46f327a6884209eb0bec6e8c2a20071f498536635787290be06f"
+}
