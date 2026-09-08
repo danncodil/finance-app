@@ -10,6 +10,7 @@ mod db;
 mod errors;
 mod gamification;
 mod goals;
+mod patch;
 mod projects;
 mod reports;
 mod transactions;
@@ -59,8 +60,7 @@ async fn health_check() -> Json<HealthResponse> {
 /// Monta o router principal com todos os grupos de rotas.
 fn build_router(state: AppState) -> Router {
     // Rotas públicas (sem autenticação)
-    let public_routes = Router::new()
-        .route("/health", get(health_check));
+    let public_routes = Router::new().route("/health", get(health_check));
 
     // Rotas de autenticação
     let auth_routes = Router::new()
@@ -72,13 +72,27 @@ fn build_router(state: AppState) -> Router {
     // Rotas de usuários (protegidas)
     let user_routes = Router::new()
         // Rota de demonstração do middleware de autenticação (AuthUser)
-        .route("/me/demo", get(|user: auth::middleware::AuthUser| async move {
-            format!("Olá! Acesso autorizado. Seu ID extraído do JWT é: {}", user.id)
-        }))
-        .route("/profile", axum::routing::get(auth::handler::get_profile)
-                           .put(auth::handler::update_profile))
-        .route("/password", axum::routing::put(auth::handler::update_password))
-        .route("/export/data", axum::routing::get(auth::handler::export_data));
+        .route(
+            "/me/demo",
+            get(|user: auth::middleware::AuthUser| async move {
+                format!(
+                    "Olá! Acesso autorizado. Seu ID extraído do JWT é: {}",
+                    user.id
+                )
+            }),
+        )
+        .route(
+            "/profile",
+            axum::routing::get(auth::handler::get_profile).put(auth::handler::update_profile),
+        )
+        .route(
+            "/password",
+            axum::routing::put(auth::handler::update_password),
+        )
+        .route(
+            "/export/data",
+            axum::routing::get(auth::handler::export_data),
+        );
 
     // Monta a árvore de rotas da API v1
     let api_v1_routes = Router::new()
@@ -86,23 +100,60 @@ fn build_router(state: AppState) -> Router {
         .nest("/auth", auth_routes)
         .nest("/users", user_routes)
         // Categorias
-        .route("/categories", axum::routing::get(categories::handler::list).post(categories::handler::create))
-        .route("/categories/{id}", axum::routing::put(categories::handler::update).delete(categories::handler::delete))
+        .route(
+            "/categories",
+            axum::routing::get(categories::handler::list).post(categories::handler::create),
+        )
+        .route(
+            "/categories/{id}",
+            axum::routing::put(categories::handler::update).delete(categories::handler::delete),
+        )
         // Transações
-        .route("/transactions", axum::routing::get(transactions::handler::list).post(transactions::handler::create))
-        .route("/transactions/{id}", axum::routing::get(transactions::handler::get_by_id).put(transactions::handler::update).delete(transactions::handler::delete))
+        .route(
+            "/transactions",
+            axum::routing::get(transactions::handler::list).post(transactions::handler::create),
+        )
+        .route(
+            "/transactions/{id}",
+            axum::routing::get(transactions::handler::get_by_id)
+                .put(transactions::handler::update)
+                .delete(transactions::handler::delete),
+        )
         // Projetos
-        .route("/projects", axum::routing::get(projects::handler::list).post(projects::handler::create))
-        .route("/projects/{id}", axum::routing::get(projects::handler::get_by_id).put(projects::handler::update).delete(projects::handler::delete))
+        .route(
+            "/projects",
+            axum::routing::get(projects::handler::list).post(projects::handler::create),
+        )
+        .route(
+            "/projects/{id}",
+            axum::routing::get(projects::handler::get_by_id)
+                .put(projects::handler::update)
+                .delete(projects::handler::delete),
+        )
         // Relatórios
-        .route("/reports/summary", axum::routing::get(reports::handler::summary))
+        .route(
+            "/reports/summary",
+            axum::routing::get(reports::handler::summary),
+        )
         // Assistente IA
-        .route("/assistant/parse", axum::routing::post(assistant::handler::parse_text))
+        .route(
+            "/assistant/parse",
+            axum::routing::post(assistant::handler::parse_text),
+        )
         // Metas
-        .route("/goals", axum::routing::get(goals::handler::list).post(goals::handler::create))
-        .route("/goals/{id}", axum::routing::put(goals::handler::update))
+        .route(
+            "/goals",
+            axum::routing::get(goals::handler::list).post(goals::handler::create),
+        )
+        .route(
+            "/goals/{id}",
+            axum::routing::put(goals::handler::update).delete(goals::handler::delete),
+        )
         // Gamificação
-        .route("/gamification/status", axum::routing::get(gamification::handler::status));
+        .route(
+            "/gamification/status",
+            axum::routing::get(gamification::handler::status),
+        );
 
     // Monta o layer de CORS baseado na configuração do ambiente
     let cors = if state.config.cors_origin == "*" {
@@ -117,7 +168,9 @@ fn build_router(state: AppState) -> Router {
             ])
             .allow_headers(tower_http::cors::Any)
     } else {
-        let origin: HeaderValue = state.config.cors_origin
+        let origin: HeaderValue = state
+            .config
+            .cors_origin
             .parse()
             .expect("CORS_ORIGIN deve ser uma URL válida (ex: http://localhost:5173)");
         CorsLayer::new()

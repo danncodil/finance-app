@@ -50,31 +50,11 @@ struct ErrorDetail {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
-            ApiError::NotFound => (
-                StatusCode::NOT_FOUND,
-                "NOT_FOUND",
-                self.to_string(),
-            ),
-            ApiError::BadRequest(_) => (
-                StatusCode::BAD_REQUEST,
-                "BAD_REQUEST",
-                self.to_string(),
-            ),
-            ApiError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                "UNAUTHORIZED",
-                self.to_string(),
-            ),
-            ApiError::Forbidden => (
-                StatusCode::FORBIDDEN,
-                "FORBIDDEN",
-                self.to_string(),
-            ),
-            ApiError::Conflict(_) => (
-                StatusCode::CONFLICT,
-                "CONFLICT",
-                self.to_string(),
-            ),
+            ApiError::NotFound => (StatusCode::NOT_FOUND, "NOT_FOUND", self.to_string()),
+            ApiError::BadRequest(_) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", self.to_string()),
+            ApiError::Unauthorized => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", self.to_string()),
+            ApiError::Forbidden => (StatusCode::FORBIDDEN, "FORBIDDEN", self.to_string()),
+            ApiError::Conflict(_) => (StatusCode::CONFLICT, "CONFLICT", self.to_string()),
             ApiError::UnprocessableEntity(_) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 "UNPROCESSABLE_ENTITY",

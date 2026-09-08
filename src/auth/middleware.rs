@@ -4,14 +4,10 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::{
-    auth::service::validate_token,
-    errors::ApiError,
-    AppState,
-};
+use crate::{auth::service::validate_token, errors::ApiError, AppState};
 
 /// Estrutura injetável em qualquer rota (handler) que necessite de autenticação.
-/// Ao colocar `AuthUser` como argumento do handler, o Axum automaticamente 
+/// Ao colocar `AuthUser` como argumento do handler, o Axum automaticamente
 /// executará o código `from_request_parts` abaixo antes de chamar o handler.
 #[derive(Debug, Clone)]
 pub struct AuthUser {

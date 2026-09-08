@@ -46,16 +46,14 @@ impl AppConfig {
                 .parse()
                 .expect("PORT deve ser um número válido"),
             database: DatabaseConfig {
-                url: env::var("DATABASE_URL")
-                    .expect("DATABASE_URL é obrigatória"),
+                url: env::var("DATABASE_URL").expect("DATABASE_URL é obrigatória"),
                 max_connections: env::var("DATABASE_MAX_CONNECTIONS")
                     .unwrap_or_else(|_| "10".to_string())
                     .parse()
                     .expect("DATABASE_MAX_CONNECTIONS deve ser um número válido"),
             },
             jwt: JwtConfig {
-                secret: env::var("JWT_SECRET")
-                    .expect("JWT_SECRET é obrigatória"),
+                secret: env::var("JWT_SECRET").expect("JWT_SECRET é obrigatória"),
                 access_expiration_minutes: env::var("JWT_ACCESS_EXPIRATION_MINUTES")
                     .unwrap_or_else(|_| "15".to_string())
                     .parse()
@@ -69,8 +67,7 @@ impl AppConfig {
                 api_key: env::var("GEMINI_API_KEY")
                     .unwrap_or_else(|_| "MISSING_API_KEY".to_string()),
             },
-            cors_origin: env::var("CORS_ORIGIN")
-                .unwrap_or_else(|_| "*".to_string()),
+            cors_origin: env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".to_string()),
         }
     }
 }

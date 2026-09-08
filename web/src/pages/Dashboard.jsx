@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Wallet, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import SummaryCard from "../components/SummaryCard";
 import RecentTransactions from "../components/RecentTransactions";
@@ -21,6 +21,8 @@ import {
 export default function Dashboard() {
   const { logout } = useAuth();
   const { currentProfile } = useProfile();
+  const requestId = useRef(0);
+  const [errorAlert, setErrorAlert] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
@@ -41,17 +43,19 @@ export default function Dashboard() {
   });
 
   const loadData = useCallback(async () => {
+    const id = ++requestId.current;
     try {
       setLoading(true);
+      setErrorAlert(null);
       const date = new Date();
-      const [catsRes, txRes, repRes, goalsRes, statusRes] = await Promise.all([
+      const [catsRes, txRes, goalsRes, statusRes] = await Promise.all([
         categoryService.list(currentProfile),
         transactionService.list(currentProfile),
-        reportService.getSummary(date.getMonth() + 1, date.getFullYear()),
         goalService.list(), // goalService agora pega tudo do backend direto
         gamificationService.getStatus()
       ]);
 
+      if (id !== requestId.current) return;
       setCategories(catsRes || []);
       setGoals(goalsRes || []);
       
@@ -75,9 +79,17 @@ export default function Dashboard() {
       const backendBadges = statusRes?.unlocked_achievements?.map(a => a.icon_slug) || [];
       setUnlockedBadges(backendBadges);
       
-      if (repRes) {
-        setMonthlyFlow(repRes.monthly_flow || []);
+      const flow = new Map();
+      for (let offset = 5; offset >= 0; offset--) {
+        const month = new Date(date.getFullYear(), date.getMonth() - offset, 1);
+        const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+        flow.set(key, { month: key, income: 0, expense: 0 });
       }
+      for (const tx of txRes?.transactions || []) {
+        const bucket = flow.get(tx.transaction_date.slice(0, 7));
+        if (bucket) bucket[tx.type] += Number(tx.amount);
+      }
+      setMonthlyFlow([...flow.values()]);
       
       if (txRes) {
         setTransactions(txRes.transactions || []);
@@ -92,10 +104,10 @@ export default function Dashboard() {
       if (err.status === 401) {
         logout();
       } else {
-        console.error("Falha ao carregar dados do dashboard:", err);
+        if (id === requestId.current) setErrorAlert(err.message || "Falha ao carregar dados do dashboard.");
       }
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, [logout, currentProfile]);
 
@@ -145,6 +157,7 @@ export default function Dashboard() {
 
   return (
     <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto relative min-h-full space-y-6 animate-fade-in pb-24 sm:pb-6">
+      {errorAlert && <p role="alert" className="text-rose-600">{errorAlert}</p>}
       {/* ── Header da página ──────────────────────────────────────── */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

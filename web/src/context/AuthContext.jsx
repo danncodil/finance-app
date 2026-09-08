@@ -1,50 +1,47 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../services/supabase";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { authService, userService } from "../services/api";
 
 const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca a sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchUserProfile(session.user);
-      } else {
-        setLoading(false);
-      }
-    });
+    const expire = () => { setToken(null); setUser(null); };
+    const refreshed = () => setToken(localStorage.getItem('access_token'));
+    window.addEventListener('auth-expired', expire);
+    window.addEventListener('auth-refreshed', refreshed);
+    // Busca a sessão inicial do localStorage
+    const savedToken = localStorage.getItem('access_token');
 
-    // Escuta mudanças de autenticação (login, logout, token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    if (savedToken) {
+      setToken(savedToken);
+      fetchUserProfile();
+    } else {
+      setLoading(false);
+    }
+    return () => {
+      window.removeEventListener('auth-expired', expire);
+      window.removeEventListener('auth-refreshed', refreshed);
+    };
   }, []);
 
-  const fetchUserProfile = async (authUser) => {
+  const fetchUserProfile = async () => {
     try {
       const profileData = await userService.getProfile();
-      setUser({ ...authUser, ...profileData });
+      setUser(profileData);
     } catch (err) {
       console.error("Falha ao carregar perfil:", err);
-      // Fallback
-      setUser(authUser);
+      // Se deu erro ao buscar o perfil (ex: token inválido sem refresh), limpa a sessão
+      if (err.status === 401 || err.status === 403) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        setToken(null);
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,23 +49,34 @@ export function AuthProvider({ children }) {
 
   const login = async ({ email, password }) => {
     const data = await authService.login({ email, password });
+
+    // Salva os tokens no localStorage
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+
+    setToken(data.access_token);
+    setUser(data.user);
+
     return data;
   };
 
   const register = async ({ name, email, password }) => {
     const data = await authService.register({ name, email, password });
+
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+
+    setToken(data.access_token);
+    setUser(data.user);
+
     return data;
   };
 
-  const loginWithGoogle = async () => {
-    await authService.loginWithGoogle();
-  };
-
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await authService.logout();
     setUser(null);
-    setSession(null);
-  };
+    setToken(null);
+  }, []);
 
   const updateAvatar = async (avatarUrl) => {
     const updatedUser = { ...user, avatar: avatarUrl };
@@ -79,11 +87,10 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     setUser,
-    token: session?.access_token,
+    token,
     loading,
-    isAuthenticated: !!session,
+    isAuthenticated: !!token,
     login,
-    loginWithGoogle,
     register,
     logout,
     updateAvatar,

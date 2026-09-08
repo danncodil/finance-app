@@ -1,7 +1,4 @@
-use axum::{
-    extract::State,
-    Json,
-};
+use axum::{extract::State, Json};
 
 use crate::{
     auth::middleware::AuthUser,
@@ -16,10 +13,10 @@ pub async fn status(
     user: AuthUser,
     State(state): State<AppState>,
 ) -> ApiResult<Json<GamificationStatusDto>> {
-    // 1. Busca XP e Nível do usuário. 
-    // Como a tabela user_gamification é populada apenas quando há progresso, 
+    // 1. Busca XP e Nível do usuário.
+    // Como a tabela user_gamification é populada apenas quando há progresso,
     // podemos usar um fallback para garantir que retorne 0/1 se não existir ainda.
-    
+
     let user_status = sqlx::query!(
         r#"
         SELECT xp_points, current_level

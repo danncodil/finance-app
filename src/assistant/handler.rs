@@ -1,14 +1,10 @@
 use axum::{extract::State, Json};
 
-use crate::{
-    auth::middleware::AuthUser,
-    errors::ApiError,
-    AppState,
-};
+use crate::{auth::middleware::AuthUser, errors::ApiError, AppState};
 
 use super::model::{
-    GeminiContent, GeminiGenerationConfig, GeminiPart, GeminiRequest, GeminiResponse,
-    ParseRequest, ParsedTransaction,
+    GeminiContent, GeminiGenerationConfig, GeminiPart, GeminiRequest, GeminiResponse, ParseRequest,
+    ParsedTransaction,
 };
 
 /// Manipulador para POST /api/v1/assistant/parse
@@ -89,18 +85,24 @@ REGRAS RÍGIDAS:
         .and_then(|mut content| content.content.parts.pop())
         .map(|p| p.text)
         .ok_or_else(|| {
-            ApiError::Internal(anyhow::anyhow!("Resposta da Gemini veio vazia ou inválida."))
+            ApiError::Internal(anyhow::anyhow!(
+                "Resposta da Gemini veio vazia ou inválida."
+            ))
         })?;
 
     // Extrai o JSON de forma robusta: remove markdown fences e localiza o objeto { ... }
     let text_limpo = text_result.replace("```json", "").replace("```", "");
-    let json_str = extract_json_object(&text_limpo).unwrap_or_else(|| text_limpo.trim().to_string());
+    let json_str =
+        extract_json_object(&text_limpo).unwrap_or_else(|| text_limpo.trim().to_string());
 
-    let parsed_tx: ParsedTransaction = serde_json::from_str(&json_str)
-        .map_err(|e| {
-            tracing::error!("JSON inválido retornado pela IA: {:?} — texto: {}", e, json_str);
-            ApiError::Internal(anyhow::anyhow!("JSON inválido retornado pela IA"))
-        })?;
+    let parsed_tx: ParsedTransaction = serde_json::from_str(&json_str).map_err(|e| {
+        tracing::error!(
+            "JSON inválido retornado pela IA: {:?} — texto: {}",
+            e,
+            json_str
+        );
+        ApiError::Internal(anyhow::anyhow!("JSON inválido retornado pela IA"))
+    })?;
 
     Ok(Json(parsed_tx))
 }

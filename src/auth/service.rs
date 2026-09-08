@@ -63,12 +63,13 @@ pub fn generate_access_token(user_id: Uuid, config: &JwtConfig) -> ApiResult<Str
 /// Valida um JWT Access Token e retorna as Claims se for válido.
 pub fn validate_token(token: &str, config: &JwtConfig) -> ApiResult<Claims> {
     let validation = jsonwebtoken::Validation::default();
-    
+
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(config.secret.as_bytes()),
-        &validation
-    ).map_err(|_| ApiError::Unauthorized)?;
+        &validation,
+    )
+    .map_err(|_| ApiError::Unauthorized)?;
 
     // Validação manual de expiração (opcional, o jsonwebtoken::decode já valida se expiração estiver na struct Claims e Validation default)
     let now = std::time::SystemTime::now()
@@ -85,7 +86,7 @@ pub fn validate_token(token: &str, config: &JwtConfig) -> ApiResult<Claims> {
 
 /// Faz o hash de um token de refresh (SHA256) antes de armazenar no banco.
 pub fn hash_refresh_token(token: &str) -> String {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(token.as_bytes());
     let result = hasher.finalize();

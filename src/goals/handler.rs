@@ -15,10 +15,7 @@ use crate::{
 
 /// GET /api/v1/goals
 /// Lista todas as metas do usuário logado.
-pub async fn list(
-    user: AuthUser,
-    State(state): State<AppState>,
-) -> ApiResult<Json<Vec<GoalDto>>> {
+pub async fn list(user: AuthUser, State(state): State<AppState>) -> ApiResult<Json<Vec<GoalDto>>> {
     let goals = sqlx::query_as!(
         GoalDto,
         r#"
@@ -44,7 +41,17 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateGoalDto>,
 ) -> ApiResult<(StatusCode, Json<GoalDto>)> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
+
+    if payload.title.trim().chars().count() < 2
+        || payload.target_amount <= rust_decimal::Decimal::ZERO
+    {
+        return Err(ApiError::BadRequest(
+            "Título inválido ou valor da meta deve ser maior que zero".into(),
+        ));
+    }
 
     // Default current_amount for a new goal is 0
     let current_amount = rust_decimal::Decimal::new(0, 0);
@@ -76,45 +83,58 @@ pub async fn update(
     State(state): State<AppState>,
     Json(payload): Json<UpdateGoalDto>,
 ) -> ApiResult<Json<crate::goals::model::UpdateGoalResponse>> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
-    // Busca a meta atual para verificar o target_amount e a quantia atual
-    let current = sqlx::query!(
-        r#"
-        SELECT current_amount, is_completed, target_amount
-        FROM goals
-        WHERE id = $1 AND user_id = $2
-        "#,
-        id,
-        user.id
+    if payload.amount_to_add.is_some() && payload.current_amount.is_some() {
+        return Err(ApiError::BadRequest(
+            "Informe o saldo ou o aporte, não ambos".into(),
+        ));
+    }
+    if payload
+        .amount_to_add
+        .is_some_and(|v| v <= rust_decimal::Decimal::ZERO)
+    {
+        return Err(ApiError::BadRequest(
+            "O aporte deve ser maior que zero".into(),
+        ));
+    }
+    let mut tx = state.pool.begin().await?;
+    let current = sqlx::query_as::<_, GoalDto>(
+        "SELECT * FROM goals WHERE id = $1 AND user_id = $2 FOR UPDATE",
     )
-    .fetch_optional(&state.pool)
+    .bind(id)
+    .bind(user.id)
+    .fetch_optional(&mut *tx)
     .await?
     .ok_or(ApiError::NotFound)?;
-
-    let new_amount = payload.current_amount.unwrap_or(current.current_amount);
-    let new_completed = payload.is_completed.unwrap_or(current.is_completed);
-
-    // Identifica se acabamos de atingir a marca de 50%
-    let reached_50_percent = new_amount >= (current.target_amount * rust_decimal::Decimal::new(5, 1)) // target_amount * 0.5
-        && current.current_amount < (current.target_amount * rust_decimal::Decimal::new(5, 1));
-
-    let updated = sqlx::query_as!(
-        GoalDto,
-        r#"
-        UPDATE goals
-        SET current_amount = $1, is_completed = $2
-        WHERE id = $3 AND user_id = $4
-        RETURNING id, user_id, title, target_amount, current_amount, deadline, is_completed, created_at, updated_at
-        "#,
-        new_amount,
-        new_completed,
-        id,
-        user.id
-    )
-    .fetch_one(&state.pool)
-    .await?;
-
+    let new_amount = payload.current_amount.unwrap_or(current.current_amount)
+        + payload.amount_to_add.unwrap_or_default();
+    let target = payload.target_amount.unwrap_or(current.target_amount);
+    let title = payload.title.unwrap_or(current.title);
+    if title.trim().chars().count() < 2
+        || target <= rust_decimal::Decimal::ZERO
+        || new_amount < rust_decimal::Decimal::ZERO
+    {
+        return Err(ApiError::BadRequest(
+            "Título inválido ou valores fora do intervalo permitido".into(),
+        ));
+    }
+    let completed = new_amount >= target;
+    if payload.is_completed.is_some_and(|value| value != completed) {
+        return Err(ApiError::BadRequest(
+            "A conclusão deve corresponder ao saldo da meta".into(),
+        ));
+    }
+    let reached_50_percent = new_amount >= target * rust_decimal::Decimal::new(5, 1)
+        && current.current_amount < current.target_amount * rust_decimal::Decimal::new(5, 1);
+    let updated = sqlx::query_as::<_, GoalDto>(
+        "UPDATE goals SET title = $1, target_amount = $2, current_amount = $3, deadline = $4, is_completed = $5 WHERE id = $6 AND user_id = $7 RETURNING *"
+    ).bind(title.trim()).bind(target).bind(new_amount)
+        .bind(payload.deadline.unwrap_or(current.deadline)).bind(completed)
+        .bind(id).bind(user.id).fetch_one(&mut *tx).await?;
+    tx.commit().await?;
     let mut unlocked_achievement = None;
 
     if reached_50_percent {
@@ -125,12 +145,42 @@ pub async fn update(
             "Atingiu 50% de uma meta",
             "target",
             100,
-            "half_goal"
-        ).await?;
+            "half_goal",
+        )
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%error, "Falha ao atualizar conquista da meta");
+            None
+        });
     }
 
     Ok(Json(crate::goals::model::UpdateGoalResponse {
         goal: updated,
         unlocked_achievement,
     }))
+}
+
+/// DELETE /api/v1/goals/:id
+/// Remove uma meta pertencente ao usuário autenticado.
+pub async fn delete(
+    user: AuthUser,
+    Path(id): Path<Uuid>,
+    State(state): State<AppState>,
+) -> ApiResult<StatusCode> {
+    let result = sqlx::query(
+        r#"
+        DELETE FROM goals
+        WHERE id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(id)
+    .bind(user.id)
+    .execute(&state.pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(ApiError::NotFound);
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }

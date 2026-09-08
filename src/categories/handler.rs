@@ -42,7 +42,9 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateCategoryDto>,
 ) -> ApiResult<(StatusCode, Json<CategoryDto>)> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     let category = sqlx::query_as!(
         CategoryDto,
@@ -71,7 +73,9 @@ pub async fn update(
     State(state): State<AppState>,
     Json(payload): Json<UpdateCategoryDto>,
 ) -> ApiResult<Json<CategoryDto>> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     // Busca a categoria para garantir que ela existe e pertence ao usuário
     let current = sqlx::query!(
@@ -118,7 +122,7 @@ pub async fn delete(
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
 ) -> ApiResult<StatusCode> {
-    // Tenta deletar fisicamente. Se houver transações atreladas, 
+    // Tenta deletar fisicamente. Se houver transações atreladas,
     // a FK transactions_category_id_fkey causará um erro de constraint no Postgres.
     let result = sqlx::query!(
         r#"

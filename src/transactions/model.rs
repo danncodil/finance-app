@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -92,7 +92,8 @@ pub struct UpdateTransactionDto {
 
     /// Permite vincular ou desvincular a transação de um projeto.
     /// Envie `null` explicitamente para desvincular.
-    pub project_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::patch::nullable")]
+    pub project_id: Option<Option<Uuid>>,
 }
 
 // ── Responses ────────────────────────────────────────────────
@@ -114,5 +115,6 @@ pub struct ListTransactionsResponse {
 #[derive(Debug, Deserialize)]
 pub struct ListTransactionsParams {
     /// Filtra por perfil: 'personal' ou 'business'.
+    #[serde(alias = "profile_type")]
     pub profile: Option<ProfileType>,
 }

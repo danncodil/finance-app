@@ -1,6 +1,6 @@
+use crate::gamification::model::AchievementDto;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::gamification::model::AchievementDto;
 
 pub async fn try_unlock_achievement(
     pool: &PgPool,

@@ -22,8 +22,8 @@ use crate::{
 use crate::transactions::model::RecurrenceType;
 use chrono::Months;
 
-use serde::Serialize;
 use crate::gamification::model::AchievementDto;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct CreateTransactionResponse {
@@ -37,7 +37,9 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateTransactionDto>,
 ) -> ApiResult<(StatusCode, Json<CreateTransactionResponse>)> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     let category_exists = sqlx::query_scalar!(
         "SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND user_id = $2)",
@@ -49,7 +51,9 @@ pub async fn create(
     .unwrap_or(false);
 
     if !category_exists {
-        return Err(ApiError::BadRequest("Categoria inválida ou não pertence ao usuário".to_string()));
+        return Err(ApiError::BadRequest(
+            "Categoria inválida ou não pertence ao usuário".to_string(),
+        ));
     }
 
     // Valida o project_id se informado: deve pertencer ao usuário
@@ -64,17 +68,23 @@ pub async fn create(
         .unwrap_or(false);
 
         if !project_exists {
-            return Err(ApiError::BadRequest("Projeto inválido ou não pertence ao usuário".to_string()));
+            return Err(ApiError::BadRequest(
+                "Projeto inválido ou não pertence ao usuário".to_string(),
+            ));
         }
     }
 
-    let tx_date         = payload.transaction_date.unwrap_or_else(|| Utc::now().naive_utc().date());
+    let tx_date = payload
+        .transaction_date
+        .unwrap_or_else(|| Utc::now().naive_utc().date());
     let type_recurrence = payload.type_recurrence.unwrap_or(RecurrenceType::Unique);
     let installment_total = payload.installment_total.unwrap_or(1);
-    let profile_type    = payload.profile_type.unwrap_or(ProfileType::Personal);
+    let profile_type = payload.profile_type.unwrap_or(ProfileType::Personal);
 
     if type_recurrence == RecurrenceType::Installment && installment_total < 2 {
-        return Err(ApiError::BadRequest("O número de parcelas deve ser pelo menos 2".into()));
+        return Err(ApiError::BadRequest(
+            "O número de parcelas deve ser pelo menos 2".into(),
+        ));
     }
 
     let mut created_txs = Vec::new();
@@ -102,10 +112,10 @@ pub async fn create(
             let next_date = tx_date
                 .checked_add_months(Months::new(i as u32))
                 .unwrap_or(tx_date);
-            let current_id     = ids[i as usize];
+            let current_id = ids[i as usize];
             let current_parent = if i == 0 { None } else { Some(parent_id) };
             let current_amount = amounts[i as usize];
-            
+
             let desc = format!("{} - Parcela {}/{}", base_desc, i + 1, installment_total);
 
             let tx = sqlx::query_as!(
@@ -144,7 +154,9 @@ pub async fn create(
             .map_err(|e| {
                 if let sqlx::Error::Database(db_err) = &e {
                     if db_err.constraint() == Some("chk_transactions_amount") {
-                        return ApiError::UnprocessableEntity("O valor (amount) deve ser maior que 0".to_string());
+                        return ApiError::UnprocessableEntity(
+                            "O valor (amount) deve ser maior que 0".to_string(),
+                        );
                     }
                 }
                 ApiError::Database(e)
@@ -154,7 +166,7 @@ pub async fn create(
     } else if type_recurrence == RecurrenceType::Subscription {
         let base_desc = payload.description.clone().unwrap_or_default();
         let total_months = 12;
-        
+
         let mut ids = vec![];
         for _ in 0..total_months {
             ids.push(Uuid::new_v4());
@@ -201,7 +213,9 @@ pub async fn create(
             .map_err(|e| {
                 if let sqlx::Error::Database(db_err) = &e {
                     if db_err.constraint() == Some("chk_transactions_amount") {
-                        return ApiError::UnprocessableEntity("O valor (amount) deve ser maior que 0".to_string());
+                        return ApiError::UnprocessableEntity(
+                            "O valor (amount) deve ser maior que 0".to_string(),
+                        );
                     }
                 }
                 ApiError::Database(e)
@@ -240,7 +254,9 @@ pub async fn create(
         .map_err(|e| {
             if let sqlx::Error::Database(db_err) = &e {
                 if db_err.constraint() == Some("chk_transactions_amount") {
-                    return ApiError::UnprocessableEntity("O valor (amount) deve ser maior que 0".to_string());
+                    return ApiError::UnprocessableEntity(
+                        "O valor (amount) deve ser maior que 0".to_string(),
+                    );
                 }
             }
             ApiError::Database(e)
@@ -253,7 +269,9 @@ pub async fn create(
     let mut unlocked_achievements = Vec::new();
 
     // 1. Visão de Futuro
-    if type_recurrence == RecurrenceType::Installment || type_recurrence == RecurrenceType::Subscription {
+    if type_recurrence == RecurrenceType::Installment
+        || type_recurrence == RecurrenceType::Subscription
+    {
         if let Some(ach) = crate::gamification::service::try_unlock_achievement(
             &state.pool,
             user.id,
@@ -261,8 +279,10 @@ pub async fn create(
             "Automatizar e planejar os próximos meses",
             "telescope",
             50,
-            "first_recurrent"
-        ).await? {
+            "first_recurrent",
+        )
+        .await?
+        {
             unlocked_achievements.push(ach);
         }
     }
@@ -292,8 +312,10 @@ pub async fn create(
                 "Receitas de duas ou mais fontes no mesmo mês",
                 "wallet",
                 75,
-                "multi_income"
-            ).await? {
+                "multi_income",
+            )
+            .await?
+            {
                 unlocked_achievements.push(ach);
             }
         }
@@ -324,16 +346,21 @@ pub async fn create(
             "Registrou lançamentos por 3 dias consecutivos",
             "calendar",
             50,
-            "consistency_3_days"
-        ).await? {
+            "consistency_3_days",
+        )
+        .await?
+        {
             unlocked_achievements.push(ach);
         }
     }
 
-    Ok((StatusCode::CREATED, Json(CreateTransactionResponse {
-        transactions: created_txs,
-        unlocked_achievements,
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(CreateTransactionResponse {
+            transactions: created_txs,
+            unlocked_achievements,
+        }),
+    ))
 }
 
 /// GET /api/v1/transactions
@@ -431,8 +458,8 @@ pub async fn list(
 
     Ok(Json(ListTransactionsResponse {
         summary: TransactionsSummary {
-            balance:       summary.balance,
-            total_income:  summary.total_income,
+            balance: summary.balance,
+            total_income: summary.total_income,
             total_expense: summary.total_expense,
         },
         transactions,
@@ -476,7 +503,9 @@ pub async fn update(
     State(state): State<AppState>,
     Json(payload): Json<UpdateTransactionDto>,
 ) -> ApiResult<Json<TransactionDto>> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     // Busca o registro atual para aplicar patch
     let current = sqlx::query!(
@@ -510,13 +539,15 @@ pub async fn update(
         .unwrap_or(false);
 
         if !category_exists {
-            return Err(ApiError::BadRequest("Categoria inválida ou não pertence ao usuário".to_string()));
+            return Err(ApiError::BadRequest(
+                "Categoria inválida ou não pertence ao usuário".to_string(),
+            ));
         }
     }
 
     // Se estiver tentando mudar o projeto, verifica se ele existe e pertence ao usuário
-    let new_project_id = if payload.project_id.is_some() {
-        let pid = payload.project_id.unwrap();
+    let new_project_id = payload.project_id.unwrap_or(current.project_id);
+    if let Some(pid) = new_project_id {
         let project_exists = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND user_id = $2)",
             pid,
@@ -527,18 +558,17 @@ pub async fn update(
         .unwrap_or(false);
 
         if !project_exists {
-            return Err(ApiError::BadRequest("Projeto inválido ou não pertence ao usuário".to_string()));
+            return Err(ApiError::BadRequest(
+                "Projeto inválido ou não pertence ao usuário".to_string(),
+            ));
         }
-        Some(pid)
-    } else {
-        current.project_id
-    };
+    }
 
-    let new_type        = payload.r#type.unwrap_or(current.r#type);
-    let new_amount      = payload.amount.unwrap_or(current.amount);
+    let new_type = payload.r#type.unwrap_or(current.r#type);
+    let new_amount = payload.amount.unwrap_or(current.amount);
     let new_description = payload.description.or(current.description);
-    let new_date        = payload.transaction_date.unwrap_or(current.transaction_date);
-    let new_profile     = payload.profile_type.unwrap_or(current.profile_type);
+    let new_date = payload.transaction_date.unwrap_or(current.transaction_date);
+    let new_profile = payload.profile_type.unwrap_or(current.profile_type);
 
     let updated = sqlx::query_as!(
         TransactionDto,
@@ -577,7 +607,9 @@ pub async fn update(
     .map_err(|e| {
         if let sqlx::Error::Database(db_err) = &e {
             if db_err.constraint() == Some("chk_transactions_amount") {
-                return ApiError::UnprocessableEntity("O valor (amount) deve ser maior que 0".to_string());
+                return ApiError::UnprocessableEntity(
+                    "O valor (amount) deve ser maior que 0".to_string(),
+                );
             }
         }
         ApiError::Database(e)

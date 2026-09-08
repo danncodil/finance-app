@@ -1,14 +1,44 @@
+import { useEffect, useState } from "react";
+import { transactionService, categoryService } from "../services/api";
+import { useProfile } from "../context/ProfileContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Sparkles, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 export default function ReportsDashboard() {
-  const expenseData = [
-    { name: "Moradia", value: 2500, color: "#3b82f6" },
-    { name: "Alimentação", value: 1200, color: "#10b981" },
-    { name: "Transporte", value: 600, color: "#f59e0b" },
-    { name: "Lazer", value: 400, color: "#8b5cf6" },
-  ];
-
+  const { currentProfile } = useProfile();
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    let active = true;
+    setReport(null);
+    setError(null);
+    Promise.all([transactionService.list(currentProfile), categoryService.list()])
+      .then(([data, categories]) => {
+        if (!active) return;
+        const now = new Date();
+        const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        let income = 0, expense = 0;
+        const groups = new Map();
+        for (const tx of data.transactions) {
+          if (!tx.transaction_date.startsWith(month)) continue;
+          const amount = Number(tx.amount);
+          if (tx.type === 'income') income += amount;
+          else {
+            expense += amount;
+            const cat = categories.find(c => c.id === tx.category_id);
+            const group = groups.get(tx.category_id) || { name: cat?.name || 'Sem Categoria', color: cat?.color || '#64748b', value: 0 };
+            group.value += amount;
+            groups.set(tx.category_id, group);
+          }
+        }
+        setReport({ income, expense, balance: income - expense, groups: [...groups.values()] });
+      }).catch(err => { if (active) setError(err.message); });
+    return () => { active = false; };
+  }, [currentProfile]);
+  const currency = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  const expenseData = report?.groups || [];
+  if (error) return <p role="alert" className="p-8 text-rose-600">{error}</p>;
+  if (!report) return <p className="p-8">Carregando relatórios...</p>;
   return (
     <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto relative min-h-full space-y-6 animate-fade-in pb-24 sm:pb-6">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -31,26 +61,26 @@ export default function ReportsDashboard() {
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
               <h2 className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Balanço do Mês</h2>
-              <div className="text-4xl font-extrabold text-white">R$ 1.340,00</div>
+              <div className="text-4xl font-extrabold text-white">{currency(report.balance)}</div>
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium bg-emerald-400/10 px-3 py-1.5 rounded-full">
                   <ArrowUpRight className="w-4 h-4" />
-                  +12% receitas
+                  Receitas do mês
                 </div>
                 <div className="flex items-center gap-2 text-rose-400 text-sm font-medium bg-rose-400/10 px-3 py-1.5 rounded-full">
                   <ArrowDownRight className="w-4 h-4" />
-                  -5% despesas
+                  Despesas do mês
                 </div>
               </div>
             </div>
             <div className="mt-8 flex gap-6">
               <div className="flex-1">
                 <div className="text-slate-400 text-xs mb-1">Entradas</div>
-                <div className="text-white font-bold text-lg">R$ 5.400,00</div>
+                <div className="text-white font-bold text-lg">{currency(report.income)}</div>
               </div>
               <div className="flex-1">
                 <div className="text-slate-400 text-xs mb-1">Saídas</div>
-                <div className="text-white font-bold text-lg">R$ 4.060,00</div>
+                <div className="text-white font-bold text-lg">{currency(report.expense)}</div>
               </div>
             </div>
           </div>
@@ -61,13 +91,13 @@ export default function ReportsDashboard() {
           <div>
             <div className="flex items-center gap-2 text-purple-300 mb-4">
               <Sparkles className="w-5 h-5 animate-pulse" />
-              <span className="font-bold text-sm tracking-wide">AI INSIGHTS</span>
+              <span className="font-bold text-sm tracking-wide">RESUMO DO MÊS</span>
             </div>
             <p className="text-white/90 text-sm leading-relaxed">
-              Você gastou <strong>15% a menos</strong> com <em>Alimentação</em> neste mês em comparação ao mês passado. Se mantiver esse ritmo, poderá investir mais na sua meta de "Viagem"!
+              {report.balance >= 0 ? "Suas receitas cobrem as despesas registradas neste mês." : "As despesas registradas superam as receitas neste mês."}
             </p>
           </div>
-          <button className="mt-6 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-semibold transition-all">
+          <button onClick={() => document.getElementById("expense-breakdown")?.scrollIntoView({ behavior: "smooth" })} className="mt-6 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-semibold transition-all">
             Ver detalhes
           </button>
         </div>
@@ -75,7 +105,7 @@ export default function ReportsDashboard() {
         {/* Gráfico de Despesas (Donut) */}
         <div className="md:col-span-2 bg-white dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-100 dark:border-white/5 shadow-card flex flex-col md:flex-row items-center gap-8">
           <div className="w-full md:w-1/2">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Composição de Gastos</h2>
+            <h2 id="expense-breakdown" className="text-lg font-bold text-slate-900 dark:text-white mb-2">Composição de Gastos</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Onde seu dinheiro está indo</p>
             <div className="space-y-4">
               {expenseData.map(item => (
@@ -117,45 +147,17 @@ export default function ReportsDashboard() {
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
               <span className="text-slate-400 text-xs font-semibold">Total</span>
-              <span className="text-slate-900 dark:text-white font-bold text-lg">R$ 4.700</span>
+              <span className="text-slate-900 dark:text-white font-bold text-lg">{currency(report.expense)}</span>
             </div>
           </div>
         </div>
 
-        {/* Alerta de Orçamento */}
         <div className="bg-white dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-100 dark:border-white/5 shadow-card">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Alerta de Orçamento</h2>
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Lazer</span>
-                <span className="text-rose-500 font-bold">90%</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-rose-500 rounded-full w-[90%]" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Transporte</span>
-                <span className="text-amber-500 font-bold">75%</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full w-[75%]" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Mercado</span>
-                <span className="text-emerald-500 font-bold">40%</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full w-[40%]" />
-              </div>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold mb-6">Distribuição das despesas</h2>
+          {expenseData.length === 0 ? <p>Sem despesas neste mês.</p> : expenseData.map(item => (
+            <p key={item.name} className="flex justify-between mb-3"><span>{item.name}</span><span>{(item.value / report.expense * 100).toFixed(1)}%</span></p>
+          ))}
         </div>
-
       </div>
     </div>
   );

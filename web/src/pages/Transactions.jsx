@@ -1,5 +1,5 @@
 // web/src/pages/Transactions.jsx
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ArrowLeftRight,
   Plus,
@@ -20,6 +20,8 @@ import TransactionModal from "../components/TransactionModal";
 
 export default function Transactions() {
   const { currentProfile } = useProfile();
+  const requestId = useRef(0);
+  const [errorAlert, setErrorAlert] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,18 +39,22 @@ export default function Transactions() {
   });
 
   const loadData = useCallback(async () => {
+    const id = ++requestId.current;
     try {
       setLoading(true);
+      setErrorAlert(null);
+      setTransactions([]);
       const [txRes, catRes] = await Promise.all([
         transactionService.list(currentProfile),
         categoryService.list(currentProfile),
       ]);
+      if (id !== requestId.current) return;
       setTransactions(txRes?.transactions || []);
       setCategories(catRes || []);
     } catch (err) {
-      console.error("Erro ao carregar lançamentos:", err);
+      if (id === requestId.current) setErrorAlert(err.message || "Erro ao carregar lançamentos.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, [currentProfile]);
 
@@ -63,8 +69,8 @@ export default function Transactions() {
   // Filtros aplicados
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
-      const matchesSearch = tx.description
-        ?.toLowerCase()
+      const matchesSearch = (tx.description || '')
+        .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
       const matchesType =
@@ -81,13 +87,13 @@ export default function Transactions() {
           : tx.category_id === selectedCategory;
 
       return (
-        matchesSearch &&
+        tx.profile_type === currentProfile && matchesSearch &&
         matchesType &&
         matchesRecurrence &&
         matchesCategory
       );
     });
-  }, [transactions, searchTerm, typeFilter, recurrenceFilter, selectedCategory]);
+  }, [transactions, currentProfile, searchTerm, typeFilter, recurrenceFilter, selectedCategory]);
 
   // Totais dos itens filtrados
   const filteredTotals = useMemo(() => {
@@ -121,6 +127,7 @@ export default function Transactions() {
 
   return (
     <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {errorAlert && <p role="alert" className="text-rose-600">{errorAlert}</p>}
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

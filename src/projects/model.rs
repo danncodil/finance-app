@@ -19,7 +19,7 @@ pub enum ProjectStatus {
 // ── DTOs ─────────────────────────────────────────────────────
 
 /// Representa um projeto retornado pela API.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ProjectDto {
     pub id: Uuid,
     pub name: String,
@@ -33,7 +33,11 @@ pub struct ProjectDto {
 /// Payload para criação de um projeto.
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateProjectDto {
-    #[validate(length(min = 1, max = 255, message = "O nome deve ter entre 1 e 255 caracteres"))]
+    #[validate(length(
+        min = 1,
+        max = 255,
+        message = "O nome deve ter entre 1 e 255 caracteres"
+    ))]
     pub name: String,
 
     pub description: Option<String>,
@@ -46,12 +50,18 @@ pub struct CreateProjectDto {
 /// Payload para atualização parcial de um projeto.
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateProjectDto {
-    #[validate(length(min = 1, max = 255, message = "O nome deve ter entre 1 e 255 caracteres"))]
+    #[validate(length(
+        min = 1,
+        max = 255,
+        message = "O nome deve ter entre 1 e 255 caracteres"
+    ))]
     pub name: Option<String>,
 
-    pub description: Option<String>,
+    #[serde(default, deserialize_with = "crate::patch::nullable")]
+    pub description: Option<Option<String>>,
 
-    pub budget: Option<Decimal>,
+    #[serde(default, deserialize_with = "crate::patch::nullable")]
+    pub budget: Option<Option<Decimal>>,
 
     pub status: Option<ProjectStatus>,
 }

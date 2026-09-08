@@ -286,6 +286,8 @@ export default function Projects() {
             >
               <option value="active">Em Andamento (Ativo)</option>
               <option value="completed">Concluído</option>
+                    <option value="paused">Pausado</option>
+                    <option value="cancelled">Cancelado</option>
             </select>
           </div>
 
@@ -375,7 +377,7 @@ export default function Projects() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-200 dark:bg-slate-800/80 text-slate-700 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
-                          Concluído
+                          {{ completed: "Concluído", paused: "Pausado", cancelled: "Cancelado" }[proj.status] || proj.status}
                         </span>
                       )}
                     </td>
@@ -431,7 +433,7 @@ export default function Projects() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                     Orçamento
                   </label>
-                  <input type="number" step="0.01" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500" />
+                  <input type="number" step="0.01" min="0" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
@@ -440,6 +442,8 @@ export default function Projects() {
                   <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 cursor-pointer">
                     <option value="active">Em Andamento</option>
                     <option value="completed">Concluído</option>
+                    <option value="paused">Pausado</option>
+                    <option value="cancelled">Cancelado</option>
                   </select>
                 </div>
               </div>
@@ -473,7 +477,7 @@ export default function Projects() {
                 Tem certeza que deseja excluir o projeto <span className="underline font-bold text-slate-900 dark:text-white">"{projectToDelete.name}"</span>?
               </p>
               <p className="text-rose-800 dark:text-rose-300 leading-relaxed">
-                ⚠️ Transações vinculadas a este projeto podem impedir a exclusão.
+                As transações vinculadas serão preservadas, sem vínculo com este projeto.
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 pt-2">

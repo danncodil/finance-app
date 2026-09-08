@@ -1,30 +1,101 @@
-import { supabase } from "./supabase";
+export function resolveApiBase(value = '') {
+  const base = value.trim().replace(/\/+$/, '');
+  if (!base) return '/api/v1';
+  if (base.endsWith('/api')) return `${base}/v1`;
+  return base.endsWith('/api/v1') ? base : `${base}/api/v1`;
+}
+
+const API_BASE = resolveApiBase(import.meta.env?.VITE_API_URL);
+let refreshPromise = null;
+
+async function readError(response, fallback) {
+  const text = await response.text();
+  let payload;
+  try { payload = JSON.parse(text); } catch { payload = { message: text || fallback }; }
+  return buildApiError(response, payload, fallback);
+}
 
 /**
- * Helper interno para requisições na API Rust local
+ * Converte respostas de erro da API em Error preservando status e código.
+ */
+function buildApiError(response, payload = {}, fallbackMessage = null) {
+  const detail = payload?.error;
+  const message =
+    (detail && typeof detail === 'object' && detail.message) ||
+    (typeof detail === 'string' && detail) ||
+    payload?.message ||
+    fallbackMessage ||
+    `Erro na API: ${response.status}`;
+
+  const error = new Error(message);
+  error.status = response.status;
+  error.code =
+    (detail && typeof detail === 'object' && detail.code) ||
+    payload?.code ||
+    null;
+  return error;
+}
+
+/**
+ * Cliente HTTP base com interceptor para renovação de token (Refresh Token)
  */
 async function authenticatedFetch(endpoint, options = {}) {
-  const { data: authData } = await supabase.auth.getSession();
-  const token = authData.session?.access_token;
+  let token = localStorage.getItem('access_token');
+  const baseUrl = API_BASE;
+  const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
 
-  const headers = {
+  let headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
-  const baseUrl = import.meta.env.VITE_API_URL || "";
-  const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
+  let response = await fetch(url, { ...options, headers });
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Erro na API: ${response.status}`);
+  if (response.status === 401) {
+    // All requests share the same refresh rotation.
+    const latest = localStorage.getItem('access_token');
+    if (latest && latest !== token) {
+      headers.Authorization = `Bearer ${latest}`;
+      response = await fetch(url, { ...options, headers });
+    } else if (localStorage.getItem('refresh_token')) {
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          const refreshToken = localStorage.getItem('refresh_token');
+          const res = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              window.dispatchEvent(new Event('auth-expired'));
+            }
+            throw await readError(res);
+          }
+          const data = await res.json();
+          if (localStorage.getItem('refresh_token') !== refreshToken) {
+            throw buildApiError({ status: 401 }, { message: 'Sessão encerrada.' });
+          }
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          window.dispatchEvent(new Event('auth-refreshed'));
+          return data.access_token;
+        })().finally(() => { refreshPromise = null; });
+      }
+      headers.Authorization = `Bearer ${await refreshPromise}`;
+      response = await fetch(url, { ...options, headers });
+    }
+    if (response.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.dispatchEvent(new Event('auth-expired'));
+    }
   }
+  if (!response.ok) throw await readError(response);
+  // Algumas rotas retornam 204 No Content (sem JSON)
+  if (response.status === 204) return null;
 
   return response.json();
 }
@@ -34,40 +105,54 @@ async function authenticatedFetch(endpoint, options = {}) {
  */
 export const authService = {
   async register({ name, email, password }) {
-    // 1. Cria usuário no Auth
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-      },
+    const baseUrl = API_BASE;
+    const res = await fetch(`${baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
     });
-    if (error) throw error;
-    return { user: data.user, access_token: data.session?.access_token };
+
+    if (!res.ok) {
+      const err = await readError(res);
+      throw err;
+    }
+    return res.json();
   },
 
   async login({ email, password }) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const baseUrl = API_BASE;
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
-    if (error) throw error;
-    return { user: data.user, access_token: data.session?.access_token };
-  },
 
-  async loginWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
+    if (!res.ok) {
+      const err = await readError(res);
+      throw err;
+    }
+    return res.json();
   },
 
   async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    const refreshToken = localStorage.getItem('refresh_token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.dispatchEvent(new Event('auth-expired'));
+    if (refreshToken) {
+      try {
+        const baseUrl = API_BASE;
+        await fetch(`${baseUrl}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        });
+      } catch (e) {
+        console.error("Erro no logout", e);
+      }
+    }
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   },
 };
 
@@ -76,46 +161,28 @@ export const authService = {
  */
 export const categoryService = {
   async list(profileType = null) {
-    let query = supabase
-      .from("categories")
-      .select("*")
-      .order("name", { ascending: true });
-      
+    let url = '/categories';
     if (profileType) {
-      query = query.eq("profile_type", profileType);
+      url += `?profile_type=${profileType}`;
     }
-    
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch(url);
   },
   async create(payload) {
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("categories")
-      .insert([{ 
-        ...payload, 
-        user_id: userData.user.id,
-        profile_type: payload.profile_type || 'personal'
-      }])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch('/categories', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   },
   async update(id, payload) {
-    const { data, error } = await supabase
-      .from("categories")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
   },
   async delete(id) {
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) throw error;
+    await authenticatedFetch(`/categories/${id}`, {
+      method: 'DELETE'
+    });
   },
 };
 
@@ -124,55 +191,28 @@ export const categoryService = {
  */
 export const transactionService = {
   async list(profileType = null) {
-    let query = supabase
-      .from("transactions")
-      .select("*, category:categories(*)")
-      .order("date", { ascending: false });
-
+    let url = '/transactions';
     if (profileType) {
-      query = query.eq("profile_type", profileType);
+      url += `?profile=${encodeURIComponent(profileType)}`;
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    // Calcular resumo
-    let totalIncome = 0;
-    let totalExpense = 0;
-    data.forEach((tx) => {
-      const amount = Number(tx.amount);
-      if (tx.type === "income") totalIncome += amount;
-      if (tx.type === "expense") totalExpense += amount;
-    });
-
-    return {
-      transactions: data,
-      summary: {
-        total_income: totalIncome,
-        total_expense: totalExpense,
-        balance: totalIncome - totalExpense,
-      },
-    };
+    return await authenticatedFetch(url); // O backend já devolve o resumo e transactions
   },
   async create(payload) {
-    return await authenticatedFetch('/api/v1/transactions', {
+    return await authenticatedFetch('/transactions', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
   },
   async update(id, payload) {
-    const { data, error } = await supabase
-      .from("transactions")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch(`/transactions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
   },
   async delete(id) {
-    const { error } = await supabase.from("transactions").delete().eq("id", id);
-    if (error) throw error;
+    await authenticatedFetch(`/transactions/${id}`, {
+      method: 'DELETE'
+    });
   },
 };
 
@@ -181,58 +221,59 @@ export const transactionService = {
  */
 export const projectService = {
   async list(status = null) {
-    let query = supabase.from("projects").select("*").order("name", { ascending: true });
-    if (status) query = query.eq("status", status);
-    
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+    let url = '/projects';
+    if (status) {
+      url += `?status=${encodeURIComponent(status)}`;
+    }
+    return await authenticatedFetch(url);
+  },
+  async getById(id) {
+    return await authenticatedFetch(`/projects/${id}`);
   },
   async create(payload) {
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("projects")
-      .insert([{ ...payload, user_id: userData.user.id }])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-};
-
-/**
- * Serviços de Metas Financeiras (Goals) - RUST API
- */
-export const goalService = {
-  async list() {
-    return await authenticatedFetch('/api/v1/goals');
-  },
-  async create(payload) {
-    // payload deve ter title e target_amount
-    return await authenticatedFetch('/api/v1/goals', {
+    return await authenticatedFetch('/projects', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
   },
-  async addFunds(id, amount) {
-    // 1. Pega a meta atual
-    const goals = await this.list();
-    const currentGoal = goals.find(g => g.id === id);
-    if (!currentGoal) throw new Error("Meta não encontrada");
-
-    const newAmount = Number(currentGoal.current_amount) + Number(amount);
-    const isCompleted = newAmount >= Number(currentGoal.target_amount);
-
-    return await authenticatedFetch(`/api/v1/goals/${id}`, {
+  async update(id, payload) {
+    return await authenticatedFetch(`/projects/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ 
-        current_amount: newAmount,
-        is_completed: isCompleted 
-      })
+      body: JSON.stringify(payload)
     });
   },
   async delete(id) {
-    await authenticatedFetch(`/api/v1/goals/${id}`, {
+    return await authenticatedFetch(`/projects/${id}`, {
+      method: 'DELETE'
+    });
+  },
+};
+
+/**
+ * Serviços de Metas Financeiras (Goals)
+ */
+export const goalService = {
+  async list() {
+    return await authenticatedFetch('/goals');
+  },
+  async create(payload) {
+    return await authenticatedFetch('/goals', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  async update(id, payload) {
+    return authenticatedFetch(`/goals/${id}`, {
+      method: 'PUT', body: JSON.stringify(payload)
+    });
+  },
+  async addFunds(id, amount) {
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      throw new Error('O aporte deve ser maior que zero.');
+    }
+    return goalService.update(id, { amount_to_add: String(amount) });
+  },  async delete(id) {
+    await authenticatedFetch(`/goals/${id}`, {
       method: 'DELETE'
     });
   },
@@ -243,7 +284,7 @@ export const goalService = {
  */
 export const reportService = {
   async getSummary(month, year) {
-    return { balance: 0, income: 0, expense: 0 };
+    return await authenticatedFetch(`/reports/summary?month=${month}&year=${year}`);
   },
 };
 
@@ -252,39 +293,34 @@ export const reportService = {
  */
 export const userService = {
   async getProfile() {
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userData.user.id)
-      .single();
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch('/users/profile');
   },
   async updateProfile(payload) {
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("id", userData.user.id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    return await authenticatedFetch('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
   },
-  async uploadAvatar(file) {
-    const { data: userData } = await supabase.auth.getUser();
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userData.user.id}-${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+  async updatePassword(currentPasswordOrPayload, newPassword = null) {
+    const payload =
+      currentPasswordOrPayload && typeof currentPasswordOrPayload === 'object'
+        ? currentPasswordOrPayload
+        : { current_password: currentPasswordOrPayload, new_password: newPassword };
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file);
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-    return data.publicUrl;
+    return await authenticatedFetch('/users/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: payload.current_password,
+        new_password: payload.new_password,
+      })
+    });
+  },
+  async getExportData() {
+    return await authenticatedFetch('/users/export/data');
+  },
+  // Alias mantido para compatibilidade com a tela de Configurações.
+  async exportData() {
+    return await this.getExportData();
   }
 };
 
@@ -293,28 +329,54 @@ export const userService = {
  */
 export const assistantService = {
   async parse(text) {
-    // Chama a Serverless Function que nós criamos na Vercel
-    const response = await fetch('/api/parse', {
+    return await authenticatedFetch('/assistant/parse', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ text })
     });
-
-    if (!response.ok) {
-      let errorMsg = 'Falha ao processar com a IA.';
-      try {
-        const errorData = await response.json();
-        if (errorData.error) errorMsg = errorData.error;
-      } catch (e) {
-        // Ignora se não for JSON
-      }
-      throw new Error(errorMsg);
-    }
-
-    return await response.json();
   }
 };
 
-export { gamificationService } from "./gamificationService";
+/**
+ * Gamificação
+ */
+export const gamificationService = {
+  ACHIEVEMENTS: {
+    first_transaction: {
+      id: "first_transaction",
+      name: "Iniciante",
+      description: "Primeiro Lançamento",
+      icon: "🌟",
+      theme: "yellow"
+    },
+    first_goal: {
+      id: "first_goal",
+      name: "Focado",
+      description: "Primeira Meta",
+      icon: "🎯",
+      theme: "blue"
+    },
+    seven_days: {
+      id: "seven_days",
+      name: "7 Dias",
+      description: "Acesso Semanal",
+      icon: "🔥",
+      theme: "orange"
+    },
+    budget_shield: {
+      id: "budget_shield",
+      name: "Blindado",
+      description: "Gasto < 50%",
+      icon: "🛡️",
+      theme: "emerald"
+    }
+  },
+
+  async getStatus() {
+    try {
+      return await authenticatedFetch('/gamification/status');
+    } catch (err) {
+      console.warn("Gamificação indisponível:", err.message);
+      return { xp_points: 0, current_level: 1, unlocked_achievements: [] };
+    }
+  }
+};

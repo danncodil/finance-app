@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Plus, TrendingUp, Search, AlertTriangle, Loader2, X } from "lucide-react";
 import { goalService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { useProfile } from "../context/ProfileContext";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", {
@@ -13,8 +12,10 @@ function formatCurrency(value) {
 
 export default function Goals() {
   const { logout } = useAuth();
-  const { currentProfile } = useProfile();
   
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [errorAlert, setErrorAlert] = useState(null);
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,18 +33,19 @@ export default function Goals() {
   const loadGoals = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await goalService.list(currentProfile);
+      setErrorAlert(null);
+      const res = await goalService.list();
       setGoals(res || []);
     } catch (err) {
       if (err.status === 401) {
         logout();
       } else {
-        console.error("Falha ao carregar metas:", err);
+        setErrorAlert(err.message || "Falha ao carregar metas.");
       }
     } finally {
       setLoading(false);
     }
-  }, [currentProfile, logout]);
+  }, [logout]);
 
   useEffect(() => {
     loadGoals();
@@ -51,15 +53,17 @@ export default function Goals() {
 
   const handleCreateGoal = async (e) => {
     e.preventDefault();
-    if (!name || !targetAmount) return;
+    if (saving || !name.trim() || !targetAmount) return;
     
     try {
-      await goalService.create({
-        name,
-        target_amount: parseFloat(targetAmount.replace(",", ".")),
+      setSaving(true);
+      const payload = {
+        title: name.trim(),
+        target_amount: targetAmount.replace(",", "."),
         deadline: deadline || null,
-        profile_type: currentProfile
-      });
+      };
+      if (editingId) await goalService.update(editingId, payload);
+      else await goalService.create(payload);
       setIsModalOpen(false);
       setName("");
       setTargetAmount("");
@@ -67,15 +71,18 @@ export default function Goals() {
       loadGoals();
     } catch (error) {
       console.error("Erro ao criar meta", error);
-      alert("Erro ao criar meta.");
+      alert(error.message || "Erro ao salvar meta.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleAddFunds = async (e) => {
     e.preventDefault();
-    if (!selectedGoal || !fundAmount) return;
+    if (saving || !selectedGoal || !fundAmount) return;
 
     try {
+      setSaving(true);
       await goalService.addFunds(selectedGoal.id, parseFloat(fundAmount.replace(",", ".")));
       setIsFundModalOpen(false);
       setSelectedGoal(null);
@@ -83,7 +90,9 @@ export default function Goals() {
       loadGoals();
     } catch (error) {
       console.error("Erro ao adicionar fundos", error);
-      alert("Erro ao adicionar fundos.");
+      alert(error.message || "Erro ao adicionar fundos.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -94,12 +103,13 @@ export default function Goals() {
       loadGoals();
     } catch (error) {
       console.error("Erro ao excluir meta", error);
-      alert("Erro ao excluir meta.");
+      alert(error.message || "Erro ao excluir meta.");
     }
   };
 
   return (
     <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {errorAlert && <p role="alert" className="text-rose-600">{errorAlert}</p>}
       {/* ── Cabeçalho ──────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -113,7 +123,7 @@ export default function Goals() {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setEditingId(null); setName(""); setTargetAmount(""); setDeadline(""); setIsModalOpen(true); }}
           className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white text-sm font-bold shadow-lg shadow-brand-500/30 ring-1 ring-brand-500/50 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -139,7 +149,7 @@ export default function Goals() {
             Que tal começar planejando sua próxima viagem, a compra de um carro ou montar sua reserva de emergência?
           </p>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setEditingId(null); setName(""); setTargetAmount(""); setDeadline(""); setIsModalOpen(true); }}
             className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold shadow-md hover:bg-slate-800 dark:hover:bg-white transition-colors cursor-pointer"
           >
             Criar Minha Primeira Meta
@@ -154,11 +164,12 @@ export default function Goals() {
                 <div>
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-2">
-                      {goal.name}
+                      {goal.title}
                     </h3>
+                    <button type="button" onClick={() => { setEditingId(goal.id); setName(goal.title); setTargetAmount(String(goal.target_amount)); setDeadline(goal.deadline || ""); setIsModalOpen(true); }} className="text-sm p-1">Editar</button>
                     <button 
                       onClick={() => handleDeleteGoal(goal.id)}
-                      className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
+                      className="text-slate-300 hover:text-rose-500  transition-opacity cursor-pointer p-1"
                       title="Excluir Meta"
                     >
                       <X className="w-4 h-4" />
@@ -222,7 +233,7 @@ export default function Goals() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 ring-1 ring-slate-200 dark:ring-slate-800 animate-fade-in-up">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Nova Meta Financeira</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">{editingId ? "Editar Meta Financeira" : "Nova Meta Financeira"}</h2>
             <form onSubmit={handleCreateGoal} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nome da Meta (ex: Viagem Europa)</label>
@@ -239,7 +250,7 @@ export default function Goals() {
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Valor do Objetivo (R$)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.01" min="0.01"
                   required
                   value={targetAmount}
                   onChange={(e) => setTargetAmount(e.target.value)}
@@ -266,10 +277,10 @@ export default function Goals() {
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="flex-1 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-lg transition-colors cursor-pointer"
                 >
-                  Criar Meta
+                  {saving ? "Salvando..." : editingId ? "Salvar Meta" : "Criar Meta"}
                 </button>
               </div>
             </form>
@@ -282,13 +293,13 @@ export default function Goals() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 ring-1 ring-slate-200 dark:ring-slate-800 animate-fade-in-up">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Adicionar à Meta</h2>
-            <p className="text-sm text-slate-500 mb-4">Você está investindo em <strong>{selectedGoal.name}</strong></p>
+            <p className="text-sm text-slate-500 mb-4">Você está investindo em <strong>{selectedGoal.title}</strong></p>
             <form onSubmit={handleAddFunds} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Valor a adicionar (R$)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.01" min="0.01"
                   required
                   autoFocus
                   value={fundAmount}
@@ -307,7 +318,7 @@ export default function Goals() {
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-lg transition-colors cursor-pointer"
                 >
                   Adicionar

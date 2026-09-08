@@ -13,6 +13,7 @@ import {
   Moon,
 } from "lucide-react";
 import { userService } from "../services/api";
+import { transactionsCsv } from "../services/exportCsv";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -70,7 +71,7 @@ export default function Settings() {
       setActionLoading(true);
       setErrorAlert(null);
       
-      const updatedUser = await userService.updateProfile({ name, email });
+      const updatedUser = await userService.updateProfile({ name: name.trim(), email: email.trim() });
       setAuthUser(updatedUser);
       
       setSuccessAlert("Perfil atualizado com sucesso!");
@@ -126,41 +127,29 @@ export default function Settings() {
     }
   }
 
-  async function handleExportData() {
+  async function handleExportData(format = 'csv') {
     try {
       setActionLoading(true);
       setErrorAlert(null);
       
       const data = await userService.exportData();
       
-      if (!data || !data.transactions || data.transactions.length === 0) {
+      if (format === 'csv' && (!data || !data.transactions || data.transactions.length === 0)) {
         setErrorAlert("Não existem lançamentos para exportar.");
         return;
       }
       
-      // Conversão simples para CSV
-      const headers = ["ID", "Data", "Tipo", "Categoria", "Valor", "Descrição"];
-      const csvRows = [headers.join(",")];
-      
-      data.transactions.forEach(tx => {
-        const cat = data.categories.find(c => c.id === tx.category_id);
-        const catName = cat ? cat.name : "Sem Categoria";
-        const dateStr = new Date(tx.transaction_date).toLocaleDateString("pt-BR");
-        const typeStr = tx.type === "income" ? "Receita" : "Despesa";
-        const descStr = `"${tx.description || ''}"`;
-        
-        const row = [tx.id, dateStr, typeStr, `"${catName}"`, tx.amount, descStr];
-        csvRows.push(row.join(","));
+      const blob = new Blob([format === 'json' ? JSON.stringify(data, null, 2) : transactionsCsv(data)], {
+        type: format === 'json' ? 'application/json;charset=utf-8;' : 'text/csv;charset=utf-8;'
       });
-      
-      // Download
-      const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup_financeiro_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `backup_financeiro_${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       
       setSuccessAlert("Download do backup iniciado com sucesso!");
       setTimeout(() => setSuccessAlert(null), 3500);
@@ -393,13 +382,13 @@ export default function Settings() {
             <div className="animate-fade-in-up">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Exportar Backup</h2>
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-8 max-w-lg leading-relaxed">
-                Faça o download de todos os seus lançamentos financeiros e categorias cadastrados. O arquivo será gerado no formato CSV, pronto para ser aberto no Excel, Google Sheets ou outro software de planilha.
+                Exporte os lançamentos em CSV para planilhas ou baixe o backup completo em JSON com perfil, categorias, transações, projetos e metas.
               </p>
               
               {/* Botão Secundário Amarelo para Exportação */}
               <button
                 type="button"
-                onClick={handleExportData}
+                onClick={() => handleExportData('csv')}
                 disabled={actionLoading}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold shadow-md shadow-accent-500/20 transition-all disabled:opacity-50 cursor-pointer"
               >
@@ -412,7 +401,9 @@ export default function Settings() {
                   </>
                 )}
               </button>
-              
+              <button type="button" disabled={actionLoading} onClick={() => handleExportData('json')} className="mt-4 px-6 py-3 rounded-xl bg-brand-600 text-white text-sm font-bold disabled:opacity-50">
+                Baixar Backup Completo (JSON)
+              </button>
               <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 max-w-lg">
                 <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">Privacidade dos Dados</span>
                 O backup gerado contém informações financeiras sensíveis. Guarde o arquivo exportado em um local seguro.

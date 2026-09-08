@@ -23,9 +23,20 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateProjectDto>,
 ) -> ApiResult<(StatusCode, Json<ProjectDto>)> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     let status = payload.status.unwrap_or(ProjectStatus::Active);
+    if payload.name.trim().is_empty()
+        || payload
+            .budget
+            .is_some_and(|v| v < rust_decimal::Decimal::ZERO)
+    {
+        return Err(ApiError::BadRequest(
+            "Nome obrigatório e orçamento deve ser maior ou igual a zero".into(),
+        ));
+    }
 
     let project = sqlx::query_as!(
         ProjectDto,
@@ -124,7 +135,9 @@ pub async fn update(
     State(state): State<AppState>,
     Json(payload): Json<UpdateProjectDto>,
 ) -> ApiResult<Json<ProjectDto>> {
-    payload.validate().map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     // Busca o estado atual para aplicar patch
     let current = sqlx::query!(
@@ -140,10 +153,15 @@ pub async fn update(
     .await?
     .ok_or(ApiError::NotFound)?;
 
-    let new_name        = payload.name.unwrap_or(current.name);
-    let new_description = payload.description.or(current.description);
-    let new_budget      = payload.budget.or(current.budget);
-    let new_status      = payload.status.unwrap_or(current.status);
+    let new_name = payload.name.unwrap_or(current.name);
+    let new_description = payload.description.unwrap_or(current.description);
+    let new_budget = payload.budget.unwrap_or(current.budget);
+    let new_status = payload.status.unwrap_or(current.status);
+    if new_name.trim().is_empty() || new_budget.is_some_and(|v| v < rust_decimal::Decimal::ZERO) {
+        return Err(ApiError::BadRequest(
+            "Nome obrigatório e orçamento deve ser maior ou igual a zero".into(),
+        ));
+    }
 
     let updated = sqlx::query_as!(
         ProjectDto,
