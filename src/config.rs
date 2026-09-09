@@ -33,6 +33,7 @@ pub struct JwtConfig {
 #[derive(Debug, Clone)]
 pub struct GeminiConfig {
     pub api_key: String,
+    pub model: String,
 }
 
 impl AppConfig {
@@ -66,6 +67,8 @@ impl AppConfig {
             gemini: GeminiConfig {
                 api_key: env::var("GEMINI_API_KEY")
                     .unwrap_or_else(|_| "MISSING_API_KEY".to_string()),
+                model: env::var("GEMINI_MODEL")
+                    .unwrap_or_else(|_| "gemini-2.5-flash-lite".to_string()),
             },
             cors_origin: env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".to_string()),
         }

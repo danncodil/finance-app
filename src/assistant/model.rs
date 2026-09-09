@@ -1,63 +1,31 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-/// Payload recebido do frontend
+use crate::{categories::model::TransactionType, transactions::model::ProfileType};
+
 #[derive(Debug, Deserialize)]
 pub struct ParseRequest {
     pub text: String,
+    pub profile_type: Option<ProfileType>,
+    pub reference_date: Option<NaiveDate>,
 }
 
-/// A resposta esperada que o Gemini deve nos devolver em JSON estruturado
+/// Model output is an untrusted proposal, validated against the user's data.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParsedTransaction {
-    pub amount: f64,
+    pub amount: Option<f64>,
     pub description: String,
-    pub transaction_type: String, // "income" ou "expense"
-    pub profile_type: String,     // "personal" ou "business"
+    pub transaction_type: Option<TransactionType>,
+    pub transaction_date: Option<NaiveDate>,
+    pub category_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub clarification: Option<String>,
+    pub entry_kind: String,
+    #[serde(default = "personal_profile")]
+    pub profile_type: ProfileType,
 }
 
-// ── Estruturas para a API do Gemini ───────────────────────────────
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GeminiRequest {
-    pub contents: Vec<GeminiContent>,
-    pub system_instruction: Option<GeminiContent>,
-    pub generation_config: Option<GeminiGenerationConfig>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct GeminiContent {
-    pub parts: Vec<GeminiPart>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct GeminiPart {
-    pub text: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GeminiGenerationConfig {
-    pub response_mime_type: String,
-}
-
-// Resposta do Gemini
-#[derive(Debug, Deserialize)]
-pub struct GeminiResponse {
-    pub candidates: Option<Vec<GeminiCandidate>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GeminiCandidate {
-    pub content: GeminiCandidateContent,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GeminiCandidateContent {
-    pub parts: Vec<GeminiCandidatePart>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GeminiCandidatePart {
-    pub text: String,
+fn personal_profile() -> ProfileType {
+    ProfileType::Personal
 }

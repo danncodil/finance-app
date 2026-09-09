@@ -10,6 +10,12 @@ use serde::Serialize;
 /// automaticamente em resposta HTTP com JSON.
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
+    #[error("{message}")]
+    Assistant {
+        status: StatusCode,
+        code: &'static str,
+        message: String,
+    },
     #[error("Recurso não encontrado")]
     NotFound,
 
@@ -50,6 +56,11 @@ struct ErrorDetail {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
+            ApiError::Assistant {
+                status,
+                code,
+                message,
+            } => (*status, *code, message.clone()),
             ApiError::NotFound => (StatusCode::NOT_FOUND, "NOT_FOUND", self.to_string()),
             ApiError::BadRequest(_) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", self.to_string()),
             ApiError::Unauthorized => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", self.to_string()),

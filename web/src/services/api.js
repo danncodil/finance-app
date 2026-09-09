@@ -334,10 +334,10 @@ export const userService = {
  * Serviços do Assistente de IA
  */
 export const assistantService = {
-  async parse(text) {
+  async parse(text, { profileType, referenceDate } = {}) {
     return await authenticatedFetch('/assistant/parse', {
       method: 'POST',
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text, profile_type: profileType, reference_date: referenceDate })
     });
   }
 };
