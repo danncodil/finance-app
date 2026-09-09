@@ -138,7 +138,7 @@ export default function AIAssistantModal({ onTransactionSaved }) {
         className="fixed bottom-[84px] left-4 md:left-auto md:bottom-6 md:right-6 z-40 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center group"
         aria-label="Assistente de IA"
       >
-        <img src="/simbolo-trio.png" alt="Assistente TRIO" className="w-7 h-7 object-contain drop-shadow-md" />
+        <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Assistente TRIO" className="w-7 h-7 object-contain drop-shadow-md" />
       </button>
 
       {/* Modal Overlay */}

@@ -71,7 +71,7 @@ export default function Login() {
         {/* ── Logo e Cabeçalho ────────────────────────────────────────── */}
         <div className="text-center mb-8">
           <div className="flex flex-col items-center justify-center gap-2 mb-4">
-            <img src="/simbolo-trio.png" alt="Símbolo TRIO" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+            <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Símbolo TRIO" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
             <h1 className="text-3xl font-bold text-white tracking-widest leading-none mt-2">TRIO</h1>
           </div>
           <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">

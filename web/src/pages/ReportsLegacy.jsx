@@ -180,7 +180,7 @@ export default function Reports() {
         <div id="report-content" className={`space-y-6 animate-fade-in-up ${isExporting ? 'bg-white p-6 rounded-2xl' : ''}`}>
           {isExporting && (
              <div className="text-center mb-8 border-b border-slate-200 pb-6">
-                <img src="/simbolo-trio.png" className="w-12 h-12 mx-auto mb-3" alt="Logo" />
+                <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} className="w-12 h-12 mx-auto mb-3" alt="Logo" />
                 <h1 className="text-2xl font-bold text-slate-900">Relatório Financeiro</h1>
                 <p className="text-slate-500 font-medium">{MONTHS.find(m => m.value === month)?.label} de {year}</p>
              </div>

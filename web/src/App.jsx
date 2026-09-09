@@ -34,7 +34,7 @@ function AppLayout() {
       <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 shrink-0 z-30 shadow-sm relative">
         {/* Lado Esquerdo: Símbolo e Nome */}
         <div className="flex items-center gap-2">
-          <img src="/simbolo-trio.png" alt="Símbolo TRIO" className="w-7 h-7 shrink-0 object-contain drop-shadow-md" />
+          <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Símbolo TRIO" className="w-7 h-7 shrink-0 object-contain drop-shadow-md" />
           <div className="flex flex-col justify-center">
             <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400 tracking-[0.2em] leading-none drop-shadow-sm pb-0.5">
               TRIO

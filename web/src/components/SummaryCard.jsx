@@ -133,7 +133,7 @@ export default function SummaryCard({
       {/* Marca d'água corporativa no Saldo Geral */}
       {variant === "balance" && (
         <img 
-          src="/simbolo-trio.png" 
+          src={`${import.meta.env.BASE_URL}simbolo-trio.png`}
           alt="" 
           className={`absolute object-contain pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out ${
             isGiant
