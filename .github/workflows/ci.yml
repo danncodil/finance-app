@@ -8,6 +8,8 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
