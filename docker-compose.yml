@@ -28,15 +28,15 @@ services:
     container_name: financeapp_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: financeapp
-      POSTGRES_PASSWORD: financeapp_secret_2026
-      POSTGRES_DB: gestao_financeira
+      POSTGRES_USER: ${POSTGRES_USER:-financeapp}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD antes de iniciar o Compose}"
+      POSTGRES_DB: ${POSTGRES_DB:-gestao_financeira}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U financeapp -d gestao_financeira" ]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,13 +55,13 @@ services:
       - "3333:3333"
     environment:
       # Conexão com o banco via hostname do container 'db'
-      DATABASE_URL: postgres://financeapp:financeapp_secret_2026@db:5432/gestao_financeira
+      DATABASE_URL: "postgres://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD antes de iniciar o Compose}@db:5432/${POSTGRES_DB:-gestao_financeira}"
       DATABASE_MAX_CONNECTIONS: 10
       HOST: 0.0.0.0
       PORT: 3333
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # ⚠️  TROQUE esta chave antes de ir para produção real!
-      JWT_SECRET: PROD_SUPER_SECRETA_FINANCEAPP_2026_TROQUE_ESTA_CHAVE
+      JWT_SECRET: "${JWT_SECRET:?Defina JWT_SECRET antes de iniciar o Compose}"
       JWT_ACCESS_EXPIRATION_MINUTES: 60
       JWT_REFRESH_EXPIRATION_DAYS: 7
       RUST_LOG: gestao_financeira=info,tower_http=info

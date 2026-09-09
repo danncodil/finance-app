@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -8,8 +8,9 @@ use validator::Validate;
 
 use crate::{
     auth::middleware::AuthUser,
-    categories::model::{CategoryDto, CreateCategoryDto, TransactionType, UpdateCategoryDto},
+    categories::model::{CategoryDto, CategoryProfileParams, CreateCategoryDto, UpdateCategoryDto},
     errors::{ApiError, ApiResult},
+    transactions::model::ProfileType,
     AppState,
 };
 
@@ -18,17 +19,15 @@ use crate::{
 pub async fn list(
     user: AuthUser,
     State(state): State<AppState>,
+    Query(params): Query<CategoryProfileParams>,
 ) -> ApiResult<Json<Vec<CategoryDto>>> {
-    let categories = sqlx::query_as!(
-        CategoryDto,
-        r#"
-        SELECT id, name, type as "type: TransactionType", color, icon, created_at, updated_at
-        FROM categories
-        WHERE user_id = $1 AND is_active = true
-        ORDER BY name ASC
-        "#,
-        user.id
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
+    let categories = sqlx::query_as::<_, CategoryDto>(
+        "SELECT id, name, type, color, icon, profile_type, created_at, updated_at
+         FROM categories WHERE user_id = $1 AND profile_type = $2 AND is_active = true ORDER BY name ASC",
     )
+    .bind(user.id)
+    .bind(profile_type)
     .fetch_all(&state.pool)
     .await?;
 
@@ -46,19 +45,18 @@ pub async fn create(
         .validate()
         .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
-    let category = sqlx::query_as!(
-        CategoryDto,
-        r#"
-        INSERT INTO categories (user_id, name, type, color, icon)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, type as "type: TransactionType", color, icon, created_at, updated_at
-        "#,
-        user.id,
-        payload.name,
-        payload.r#type as TransactionType,
-        payload.color,
-        payload.icon
+    let profile_type = payload.profile_type.unwrap_or(ProfileType::Personal);
+    let category = sqlx::query_as::<_, CategoryDto>(
+        "INSERT INTO categories (user_id, name, type, color, icon, profile_type)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, name, type, color, icon, profile_type, created_at, updated_at",
     )
+    .bind(user.id)
+    .bind(payload.name)
+    .bind(payload.r#type)
+    .bind(payload.color)
+    .bind(payload.icon)
+    .bind(profile_type)
     .fetch_one(&state.pool)
     .await?;
 
@@ -71,6 +69,7 @@ pub async fn update(
     user: AuthUser,
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
+    Query(params): Query<CategoryProfileParams>,
     Json(payload): Json<UpdateCategoryDto>,
 ) -> ApiResult<Json<CategoryDto>> {
     payload
@@ -78,15 +77,14 @@ pub async fn update(
         .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
     // Busca a categoria para garantir que ela existe e pertence ao usuário
-    let current = sqlx::query!(
-        r#"
-        SELECT name, color, icon
-        FROM categories
-        WHERE id = $1 AND user_id = $2 AND is_active = true
-        "#,
-        id,
-        user.id
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
+    let current = sqlx::query_as::<_, CategoryDto>(
+        "SELECT id, name, type, color, icon, profile_type, created_at, updated_at
+         FROM categories WHERE id = $1 AND user_id = $2 AND profile_type = $3 AND is_active = true",
     )
+    .bind(id)
+    .bind(user.id)
+    .bind(profile_type)
     .fetch_optional(&state.pool)
     .await?
     .ok_or(ApiError::NotFound)?;
@@ -95,20 +93,17 @@ pub async fn update(
     let new_color = payload.color.unwrap_or(current.color);
     let new_icon = payload.icon.or(current.icon);
 
-    let updated = sqlx::query_as!(
-        CategoryDto,
-        r#"
-        UPDATE categories
-        SET name = $1, color = $2, icon = $3
-        WHERE id = $4 AND user_id = $5
-        RETURNING id, name, type as "type: TransactionType", color, icon, created_at, updated_at
-        "#,
-        new_name,
-        new_color,
-        new_icon,
-        id,
-        user.id
+    let updated = sqlx::query_as::<_, CategoryDto>(
+        "UPDATE categories SET name = $1, color = $2, icon = $3
+         WHERE id = $4 AND user_id = $5 AND profile_type = $6
+         RETURNING id, name, type, color, icon, profile_type, created_at, updated_at",
     )
+    .bind(new_name)
+    .bind(new_color)
+    .bind(new_icon)
+    .bind(id)
+    .bind(user.id)
+    .bind(profile_type)
     .fetch_one(&state.pool)
     .await?;
 
@@ -121,19 +116,18 @@ pub async fn delete(
     user: AuthUser,
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
+    Query(params): Query<CategoryProfileParams>,
 ) -> ApiResult<StatusCode> {
     // Tenta deletar fisicamente. Se houver transações atreladas,
     // a FK transactions_category_id_fkey causará um erro de constraint no Postgres.
-    let result = sqlx::query!(
-        r#"
-        DELETE FROM categories
-        WHERE id = $1 AND user_id = $2
-        "#,
-        id,
-        user.id
-    )
-    .execute(&state.pool)
-    .await;
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
+    let result =
+        sqlx::query("DELETE FROM categories WHERE id = $1 AND user_id = $2 AND profile_type = $3")
+            .bind(id)
+            .bind(user.id)
+            .bind(profile_type)
+            .execute(&state.pool)
+            .await;
 
     match result {
         Ok(res) => {

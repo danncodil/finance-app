@@ -4,10 +4,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::transactions::model::ProfileType;
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct GoalDto {
     pub id: Uuid,
     pub user_id: Uuid,
+    pub profile_type: ProfileType,
     pub title: String,
     pub target_amount: Decimal,
     pub current_amount: Decimal,
@@ -28,6 +31,7 @@ pub struct CreateGoalDto {
     pub title: String,
     pub target_amount: Decimal,
     pub deadline: Option<NaiveDate>,
+    pub profile_type: Option<ProfileType>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -47,4 +51,9 @@ pub struct UpdateGoalDto {
 pub struct UpdateGoalResponse {
     pub goal: GoalDto,
     pub unlocked_achievement: Option<crate::gamification::model::AchievementDto>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GoalProfileParams {
+    pub profile_type: Option<ProfileType>,
 }

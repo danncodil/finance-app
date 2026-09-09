@@ -16,6 +16,7 @@ import {
 import html2pdf from "html2pdf.js";
 import { reportService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 
 const MONTHS = [
   { value: 1, label: "Janeiro" },
@@ -49,6 +50,7 @@ function parseDateFlow(monthStr) {
 
 export default function Reports() {
   const { logout } = useAuth();
+  const { currentProfile } = useProfile();
   const currentDate = new Date();
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
@@ -81,7 +83,7 @@ export default function Reports() {
     try {
       setLoading(true);
       setErrorAlert(null);
-      const res = await reportService.getSummary(month, year);
+      const res = await reportService.getSummary(month, year, currentProfile);
       setData(res);
     } catch (err) {
       if (err.status === 401) {
@@ -92,7 +94,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [month, year, logout]);
+  }, [month, year, logout, currentProfile]);
 
   useEffect(() => {
     loadReports();

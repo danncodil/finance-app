@@ -173,14 +173,16 @@ export const categoryService = {
       body: JSON.stringify(payload)
     });
   },
-  async update(id, payload) {
-    return await authenticatedFetch(`/categories/${id}`, {
+  async update(id, payload, profileType = null) {
+    const query = profileType ? `?profile_type=${encodeURIComponent(profileType)}` : '';
+    return await authenticatedFetch(`/categories/${id}${query}`, {
       method: 'PUT',
       body: JSON.stringify(payload)
     });
   },
-  async delete(id) {
-    await authenticatedFetch(`/categories/${id}`, {
+  async delete(id, profileType = null) {
+    const query = profileType ? `?profile_type=${encodeURIComponent(profileType)}` : '';
+    await authenticatedFetch(`/categories/${id}${query}`, {
       method: 'DELETE'
     });
   },
@@ -253,8 +255,9 @@ export const projectService = {
  * Serviços de Metas Financeiras (Goals)
  */
 export const goalService = {
-  async list() {
-    return await authenticatedFetch('/goals');
+  async list(profileType = null) {
+    const query = profileType ? `?profile_type=${encodeURIComponent(profileType)}` : '';
+    return await authenticatedFetch(`/goals${query}`);
   },
   async create(payload) {
     return await authenticatedFetch('/goals', {
@@ -262,18 +265,20 @@ export const goalService = {
       body: JSON.stringify(payload)
     });
   },
-  async update(id, payload) {
-    return authenticatedFetch(`/goals/${id}`, {
+  async update(id, payload, profileType = null) {
+    const query = profileType ? `?profile_type=${encodeURIComponent(profileType)}` : '';
+    return authenticatedFetch(`/goals/${id}${query}`, {
       method: 'PUT', body: JSON.stringify(payload)
     });
   },
-  async addFunds(id, amount) {
+  async addFunds(id, amount, profileType = null) {
     if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
       throw new Error('O aporte deve ser maior que zero.');
     }
-    return goalService.update(id, { amount_to_add: String(amount) });
-  },  async delete(id) {
-    await authenticatedFetch(`/goals/${id}`, {
+    return goalService.update(id, { amount_to_add: String(amount) }, profileType);
+  },  async delete(id, profileType = null) {
+    const query = profileType ? `?profile_type=${encodeURIComponent(profileType)}` : '';
+    await authenticatedFetch(`/goals/${id}${query}`, {
       method: 'DELETE'
     });
   },
@@ -283,8 +288,9 @@ export const goalService = {
  * Serviços de Relatórios
  */
 export const reportService = {
-  async getSummary(month, year) {
-    return await authenticatedFetch(`/reports/summary?month=${month}&year=${year}`);
+  async getSummary(month, year, profileType = null) {
+    const profileQuery = profileType ? `&profile_type=${encodeURIComponent(profileType)}` : '';
+    return await authenticatedFetch(`/reports/summary?month=${month}&year=${year}${profileQuery}`);
   },
 };
 

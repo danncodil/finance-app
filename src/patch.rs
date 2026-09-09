@@ -12,8 +12,11 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
+        categories::model::{CategoryProfileParams, CreateCategoryDto, TransactionType},
         goals::model::UpdateGoalDto,
+        goals::model::{CreateGoalDto, GoalProfileParams},
         projects::model::UpdateProjectDto,
+        reports::model::SummaryQueryParams,
         transactions::model::{ListTransactionsParams, ProfileType, UpdateTransactionDto},
     };
     use serde_json::json;
@@ -40,5 +43,31 @@ mod tests {
                 serde_json::from_value(json!({key: "business"})).unwrap();
             assert_eq!(params.profile, Some(ProfileType::Business));
         }
+    }
+
+    #[test]
+    fn profile_scoped_payloads_and_queries_deserialize() {
+        let category: CreateCategoryDto = serde_json::from_value(json!({
+            "name": "Clientes", "type": "income", "color": "#123456", "profile_type": "business"
+        }))
+        .unwrap();
+        assert_eq!(category.profile_type, Some(ProfileType::Business));
+        assert_eq!(category.r#type, TransactionType::Income);
+
+        let goal: CreateGoalDto = serde_json::from_value(json!({
+            "title": "Capital de giro", "target_amount": "100", "profile_type": "business"
+        }))
+        .unwrap();
+        assert_eq!(goal.profile_type, Some(ProfileType::Business));
+
+        let category_params: CategoryProfileParams =
+            serde_json::from_value(json!({"profile_type": "business"})).unwrap();
+        let goal_params: GoalProfileParams =
+            serde_json::from_value(json!({"profile_type": "business"})).unwrap();
+        let report_params: SummaryQueryParams =
+            serde_json::from_value(json!({"profile": "business"})).unwrap();
+        assert_eq!(category_params.profile_type, Some(ProfileType::Business));
+        assert_eq!(goal_params.profile_type, Some(ProfileType::Business));
+        assert_eq!(report_params.profile_type, Some(ProfileType::Business));
     }
 }

@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::transactions::model::ProfileType;
+
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, Copy, PartialEq)]
 #[sqlx(type_name = "transaction_type", rename_all = "lowercase")]
 #[serde(rename_all = "snake_case")]
@@ -10,13 +12,14 @@ pub enum TransactionType {
     Expense,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct CategoryDto {
     pub id: Uuid,
     pub name: String,
     pub r#type: TransactionType,
     pub color: String,
     pub icon: Option<String>,
+    pub profile_type: ProfileType,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -29,6 +32,7 @@ pub struct CreateCategoryDto {
     #[validate(length(min = 4, max = 20))]
     pub color: String,
     pub icon: Option<String>,
+    pub profile_type: Option<ProfileType>,
 }
 
 #[derive(Debug, Deserialize, validator::Validate)]
@@ -38,4 +42,9 @@ pub struct UpdateCategoryDto {
     pub color: Option<String>,
     pub icon: Option<String>,
     // O tipo (Receita/Despesa) normalmente não pode ser alterado após criação.
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CategoryProfileParams {
+    pub profile_type: Option<ProfileType>,
 }

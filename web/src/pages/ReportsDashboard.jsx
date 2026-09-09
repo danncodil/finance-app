@@ -12,7 +12,7 @@ export default function ReportsDashboard() {
     let active = true;
     setReport(null);
     setError(null);
-    Promise.all([transactionService.list(currentProfile), categoryService.list()])
+    Promise.all([transactionService.list(currentProfile), categoryService.list(currentProfile)])
       .then(([data, categories]) => {
         if (!active) return;
         const now = new Date();

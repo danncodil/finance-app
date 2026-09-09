@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -9,25 +9,26 @@ use validator::Validate;
 use crate::{
     auth::middleware::AuthUser,
     errors::{ApiError, ApiResult},
-    goals::model::{CreateGoalDto, GoalDto, UpdateGoalDto},
+    goals::model::{CreateGoalDto, GoalDto, GoalProfileParams, UpdateGoalDto},
+    transactions::model::ProfileType,
     AppState,
 };
 
 /// GET /api/v1/goals
 /// Lista todas as metas do usuário logado.
-pub async fn list(user: AuthUser, State(state): State<AppState>) -> ApiResult<Json<Vec<GoalDto>>> {
-    let goals = sqlx::query_as!(
-        GoalDto,
-        r#"
-        SELECT 
-            id, user_id, title, target_amount, current_amount, 
-            deadline, is_completed, created_at, updated_at
-        FROM goals
-        WHERE user_id = $1
-        ORDER BY created_at DESC
-        "#,
-        user.id
+pub async fn list(
+    user: AuthUser,
+    State(state): State<AppState>,
+    Query(params): Query<GoalProfileParams>,
+) -> ApiResult<Json<Vec<GoalDto>>> {
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
+    let goals = sqlx::query_as::<_, GoalDto>(
+        "SELECT id, user_id, profile_type, title, target_amount, current_amount,
+         deadline, is_completed, created_at, updated_at FROM goals
+         WHERE user_id = $1 AND profile_type = $2 ORDER BY created_at DESC",
     )
+    .bind(user.id)
+    .bind(profile_type)
     .fetch_all(&state.pool)
     .await?;
 
@@ -56,19 +57,18 @@ pub async fn create(
     // Default current_amount for a new goal is 0
     let current_amount = rust_decimal::Decimal::new(0, 0);
 
-    let goal = sqlx::query_as!(
-        GoalDto,
-        r#"
-        INSERT INTO goals (user_id, title, target_amount, current_amount, deadline)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, user_id, title, target_amount, current_amount, deadline, is_completed, created_at, updated_at
-        "#,
-        user.id,
-        payload.title,
-        payload.target_amount,
-        current_amount,
-        payload.deadline
+    let profile_type = payload.profile_type.unwrap_or(ProfileType::Personal);
+    let goal = sqlx::query_as::<_, GoalDto>(
+        "INSERT INTO goals (user_id, profile_type, title, target_amount, current_amount, deadline)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, user_id, profile_type, title, target_amount, current_amount, deadline, is_completed, created_at, updated_at",
     )
+    .bind(user.id)
+    .bind(profile_type)
+    .bind(payload.title)
+    .bind(payload.target_amount)
+    .bind(current_amount)
+    .bind(payload.deadline)
     .fetch_one(&state.pool)
     .await?;
 
@@ -81,6 +81,7 @@ pub async fn update(
     user: AuthUser,
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
+    Query(params): Query<GoalProfileParams>,
     Json(payload): Json<UpdateGoalDto>,
 ) -> ApiResult<Json<crate::goals::model::UpdateGoalResponse>> {
     payload
@@ -100,12 +101,16 @@ pub async fn update(
             "O aporte deve ser maior que zero".into(),
         ));
     }
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
     let mut tx = state.pool.begin().await?;
     let current = sqlx::query_as::<_, GoalDto>(
-        "SELECT * FROM goals WHERE id = $1 AND user_id = $2 FOR UPDATE",
+        "SELECT id, user_id, profile_type, title, target_amount, current_amount,
+         deadline, is_completed, created_at, updated_at FROM goals
+         WHERE id = $1 AND user_id = $2 AND profile_type = $3 FOR UPDATE",
     )
     .bind(id)
     .bind(user.id)
+    .bind(profile_type)
     .fetch_optional(&mut *tx)
     .await?
     .ok_or(ApiError::NotFound)?;
@@ -130,10 +135,12 @@ pub async fn update(
     let reached_50_percent = new_amount >= target * rust_decimal::Decimal::new(5, 1)
         && current.current_amount < current.target_amount * rust_decimal::Decimal::new(5, 1);
     let updated = sqlx::query_as::<_, GoalDto>(
-        "UPDATE goals SET title = $1, target_amount = $2, current_amount = $3, deadline = $4, is_completed = $5 WHERE id = $6 AND user_id = $7 RETURNING *"
+        "UPDATE goals SET title = $1, target_amount = $2, current_amount = $3, deadline = $4, is_completed = $5
+         WHERE id = $6 AND user_id = $7 AND profile_type = $8
+         RETURNING id, user_id, profile_type, title, target_amount, current_amount, deadline, is_completed, created_at, updated_at"
     ).bind(title.trim()).bind(target).bind(new_amount)
         .bind(payload.deadline.unwrap_or(current.deadline)).bind(completed)
-        .bind(id).bind(user.id).fetch_one(&mut *tx).await?;
+        .bind(id).bind(user.id).bind(profile_type).fetch_one(&mut *tx).await?;
     tx.commit().await?;
     let mut unlocked_achievement = None;
 
@@ -166,15 +173,18 @@ pub async fn delete(
     user: AuthUser,
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
+    Query(params): Query<GoalProfileParams>,
 ) -> ApiResult<StatusCode> {
+    let profile_type = params.profile_type.unwrap_or(ProfileType::Personal);
     let result = sqlx::query(
         r#"
         DELETE FROM goals
-        WHERE id = $1 AND user_id = $2
+        WHERE id = $1 AND user_id = $2 AND profile_type = $3
         "#,
     )
     .bind(id)
     .bind(user.id)
+    .bind(profile_type)
     .execute(&state.pool)
     .await?;
 

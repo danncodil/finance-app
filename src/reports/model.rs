@@ -1,10 +1,14 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use crate::transactions::model::ProfileType;
+
 #[derive(Debug, Deserialize)]
 pub struct SummaryQueryParams {
     pub month: Option<u32>,
     pub year: Option<i32>,
+    #[serde(alias = "profile")]
+    pub profile_type: Option<ProfileType>,
 }
 
 #[derive(Debug, Serialize)]

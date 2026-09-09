@@ -31,6 +31,22 @@ pub struct CreateTransactionResponse {
     pub unlocked_achievements: Vec<AchievementDto>,
 }
 
+async fn category_belongs_to_profile(
+    state: &AppState,
+    user_id: Uuid,
+    category_id: Uuid,
+    profile_type: ProfileType,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND user_id = $2 AND profile_type = $3 AND is_active = true)",
+    )
+    .bind(category_id)
+    .bind(user_id)
+    .bind(profile_type)
+    .fetch_one(&state.pool)
+    .await
+}
+
 /// POST /api/v1/transactions
 pub async fn create(
     user: AuthUser,
@@ -41,23 +57,23 @@ pub async fn create(
         .validate()
         .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
-    let category_exists = sqlx::query_scalar!(
-        "SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND user_id = $2)",
-        payload.category_id,
-        user.id
-    )
-    .fetch_one(&state.pool)
-    .await?
-    .unwrap_or(false);
+    let profile_type = payload.profile_type.unwrap_or(ProfileType::Personal);
+    let category_exists =
+        category_belongs_to_profile(&state, user.id, payload.category_id, profile_type).await?;
 
     if !category_exists {
         return Err(ApiError::BadRequest(
-            "Categoria inválida ou não pertence ao usuário".to_string(),
+            "Categoria inválida para o perfil selecionado".to_string(),
         ));
     }
 
-    // Valida o project_id se informado: deve pertencer ao usuário
+    // Projetos são exclusivamente empresariais e devem pertencer ao usuário.
     if let Some(pid) = payload.project_id {
+        if profile_type != ProfileType::Business {
+            return Err(ApiError::BadRequest(
+                "Uma transação vinculada a projeto deve usar o perfil empresarial".into(),
+            ));
+        }
         let project_exists = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND user_id = $2)",
             pid,
@@ -79,8 +95,6 @@ pub async fn create(
         .unwrap_or_else(|| Utc::now().naive_utc().date());
     let type_recurrence = payload.type_recurrence.unwrap_or(RecurrenceType::Unique);
     let installment_total = payload.installment_total.unwrap_or(1);
-    let profile_type = payload.profile_type.unwrap_or(ProfileType::Personal);
-
     if type_recurrence == RecurrenceType::Installment && installment_total < 2 {
         return Err(ApiError::BadRequest(
             "O número de parcelas deve ser pelo menos 2".into(),
@@ -526,28 +540,24 @@ pub async fn update(
     .await?
     .ok_or(ApiError::NotFound)?;
 
-    // Se estiver tentando mudar a categoria, verifica se ela existe e pertence ao usuário
     let new_category_id = payload.category_id.unwrap_or(current.category_id);
-    if payload.category_id.is_some() && payload.category_id.unwrap() != current.category_id {
-        let category_exists = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND user_id = $2)",
-            new_category_id,
-            user.id
-        )
-        .fetch_one(&state.pool)
-        .await?
-        .unwrap_or(false);
-
-        if !category_exists {
-            return Err(ApiError::BadRequest(
-                "Categoria inválida ou não pertence ao usuário".to_string(),
-            ));
-        }
+    let new_profile = payload.profile_type.unwrap_or(current.profile_type);
+    let category_exists =
+        category_belongs_to_profile(&state, user.id, new_category_id, new_profile).await?;
+    if !category_exists {
+        return Err(ApiError::BadRequest(
+            "Categoria inválida para o perfil selecionado".to_string(),
+        ));
     }
 
     // Se estiver tentando mudar o projeto, verifica se ele existe e pertence ao usuário
     let new_project_id = payload.project_id.unwrap_or(current.project_id);
     if let Some(pid) = new_project_id {
+        if new_profile != ProfileType::Business {
+            return Err(ApiError::BadRequest(
+                "Uma transação vinculada a projeto deve usar o perfil empresarial".into(),
+            ));
+        }
         let project_exists = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND user_id = $2)",
             pid,
@@ -568,7 +578,6 @@ pub async fn update(
     let new_amount = payload.amount.unwrap_or(current.amount);
     let new_description = payload.description.or(current.description);
     let new_date = payload.transaction_date.unwrap_or(current.transaction_date);
-    let new_profile = payload.profile_type.unwrap_or(current.profile_type);
 
     let updated = sqlx::query_as!(
         TransactionDto,

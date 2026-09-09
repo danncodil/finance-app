@@ -402,16 +402,11 @@ pub async fn export_data(
     user: AuthUser,
     State(state): State<AppState>,
 ) -> ApiResult<Json<ExportDataResponse>> {
-    let categories = sqlx::query_as!(
-        CategoryDto,
-        r#"
-        SELECT id, name, type as "type: _", color, icon, created_at, updated_at
-        FROM categories
-        WHERE user_id = $1
-        ORDER BY created_at ASC
-        "#,
-        user.id
+    let categories = sqlx::query_as::<_, CategoryDto>(
+        "SELECT id, name, type, color, icon, profile_type, created_at, updated_at
+         FROM categories WHERE user_id = $1 ORDER BY created_at ASC",
     )
+    .bind(user.id)
     .fetch_all(&state.pool)
     .await?;
 

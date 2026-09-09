@@ -137,7 +137,7 @@ export default function Categories() {
       await categoryService.update(editingCategory.id, {
         name: editName.trim(),
         color: editColor,
-      });
+      }, currentProfile);
 
       setEditingCategory(null);
       setSuccessAlert("Categoria atualizada com sucesso!");
@@ -161,7 +161,7 @@ export default function Categories() {
     try {
       setActionLoading(true);
       setErrorAlert(null);
-      await categoryService.delete(categoryToDelete.id);
+      await categoryService.delete(categoryToDelete.id, currentProfile);
 
       setCategoryToDelete(null);
       setSuccessAlert("Categoria excluída com sucesso!");

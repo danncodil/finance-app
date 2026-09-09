@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Plus, TrendingUp, Search, AlertTriangle, Loader2, X } from "lucide-react";
 import { goalService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", {
@@ -12,6 +13,7 @@ function formatCurrency(value) {
 
 export default function Goals() {
   const { logout } = useAuth();
+  const { currentProfile } = useProfile();
   
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -34,7 +36,7 @@ export default function Goals() {
     try {
       setLoading(true);
       setErrorAlert(null);
-      const res = await goalService.list();
+      const res = await goalService.list(currentProfile);
       setGoals(res || []);
     } catch (err) {
       if (err.status === 401) {
@@ -45,7 +47,7 @@ export default function Goals() {
     } finally {
       setLoading(false);
     }
-  }, [logout]);
+  }, [logout, currentProfile]);
 
   useEffect(() => {
     loadGoals();
@@ -61,8 +63,9 @@ export default function Goals() {
         title: name.trim(),
         target_amount: targetAmount.replace(",", "."),
         deadline: deadline || null,
+        profile_type: currentProfile,
       };
-      if (editingId) await goalService.update(editingId, payload);
+      if (editingId) await goalService.update(editingId, payload, currentProfile);
       else await goalService.create(payload);
       setIsModalOpen(false);
       setName("");
@@ -83,7 +86,7 @@ export default function Goals() {
 
     try {
       setSaving(true);
-      await goalService.addFunds(selectedGoal.id, parseFloat(fundAmount.replace(",", ".")));
+      await goalService.addFunds(selectedGoal.id, parseFloat(fundAmount.replace(",", ".")), currentProfile);
       setIsFundModalOpen(false);
       setSelectedGoal(null);
       setFundAmount("");
@@ -99,7 +102,7 @@ export default function Goals() {
   const handleDeleteGoal = async (id) => {
     if (!window.confirm("Deseja realmente excluir esta meta?")) return;
     try {
-      await goalService.delete(id);
+      await goalService.delete(id, currentProfile);
       loadGoals();
     } catch (error) {
       console.error("Erro ao excluir meta", error);

@@ -51,7 +51,7 @@ export default function Dashboard() {
       const [catsRes, txRes, goalsRes, statusRes] = await Promise.all([
         categoryService.list(currentProfile),
         transactionService.list(currentProfile),
-        goalService.list(), // goalService agora pega tudo do backend direto
+        goalService.list(currentProfile),
         gamificationService.getStatus()
       ]);
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveApiBase, projectService, goalService, transactionService, userService } from './api.js';
+import { resolveApiBase, categoryService, projectService, goalService, reportService, transactionService, userService } from './api.js';
 import { transactionsCsv } from './exportCsv.js';
 
 const storage = new Map();
@@ -25,25 +25,37 @@ test('CRUD, password, export and PF/PJ contracts', async () => {
   };
   await projectService.update('project', { description: null, budget: null });
   await projectService.delete('project');
-  await goalService.create({ title: 'Viagem', target_amount: '100' });
-  await goalService.update('goal', { deadline: null });
-  await goalService.addFunds('goal', '10.25');
-  await goalService.delete('goal');
+  await categoryService.list('business');
+  await categoryService.create({ name: 'Clientes', profile_type: 'business' });
+  await categoryService.update('category', { name: 'Clientes PJ' }, 'business');
+  await categoryService.delete('category', 'business');
+  await goalService.list('business');
+  await goalService.create({ title: 'Viagem', target_amount: '100', profile_type: 'business' });
+  await goalService.update('goal', { deadline: null }, 'business');
+  await goalService.addFunds('goal', '10.25', 'business');
+  await goalService.delete('goal', 'business');
   await transactionService.list('personal');
   await transactionService.list('business');
+  await reportService.getSummary(9, 2026, 'business');
   await userService.updatePassword({ current_password: 'old', new_password: 'new' });
   await userService.exportData();
   assert.equal(calls[0].url, '/api/v1/projects/project');
   assert.deepEqual(JSON.parse(calls[0].body), { description: null, budget: null });
   assert.equal(calls[1].method, 'DELETE');
-  assert.equal(JSON.parse(calls[2].body).title, 'Viagem');
-  assert.deepEqual(JSON.parse(calls[3].body), { deadline: null });
-  assert.deepEqual(JSON.parse(calls[4].body), { amount_to_add: '10.25' });
-  assert.equal(calls[5].method, 'DELETE');
-  assert.equal(calls[6].url, '/api/v1/transactions?profile=personal');
-  assert.equal(calls[7].url, '/api/v1/transactions?profile=business');
-  assert.deepEqual(JSON.parse(calls[8].body), { current_password: 'old', new_password: 'new' });
-  assert.equal(calls[9].url, '/api/v1/users/export/data');
+  assert.equal(calls[2].url, '/api/v1/categories?profile_type=business');
+  assert.equal(JSON.parse(calls[3].body).profile_type, 'business');
+  assert.equal(calls[4].url, '/api/v1/categories/category?profile_type=business');
+  assert.equal(calls[5].url, '/api/v1/categories/category?profile_type=business');
+  assert.equal(calls[6].url, '/api/v1/goals?profile_type=business');
+  assert.equal(JSON.parse(calls[7].body).profile_type, 'business');
+  assert.equal(calls[8].url, '/api/v1/goals/goal?profile_type=business');
+  assert.deepEqual(JSON.parse(calls[9].body), { amount_to_add: '10.25' });
+  assert.equal(calls[10].url, '/api/v1/goals/goal?profile_type=business');
+  assert.equal(calls[11].url, '/api/v1/transactions?profile=personal');
+  assert.equal(calls[12].url, '/api/v1/transactions?profile=business');
+  assert.equal(calls[13].url, '/api/v1/reports/summary?month=9&year=2026&profile_type=business');
+  assert.deepEqual(JSON.parse(calls[14].body), { current_password: 'old', new_password: 'new' });
+  assert.equal(calls[15].url, '/api/v1/users/export/data');
 });
 
 test('API preserves structured and plain-text errors', async () => {
