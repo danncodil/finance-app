@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: assistente-ia-financeiro-api
+    runtime: rust
+    plan: free
+    buildCommand: cargo build --release --locked
+    startCommand: ./target/release/gestao-financeira
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: assistente-ia-financeiro-db
+          property: connectionString
+      - key: DATABASE_MAX_CONNECTIONS
+        value: "5"
+      - key: HOST
+        value: 0.0.0.0
+      - key: SQLX_OFFLINE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRATION_MINUTES
+        value: "15"
+      - key: JWT_REFRESH_EXPIRATION_DAYS
+        value: "7"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://danncodil.github.io
+
+databases:
+  - name: assistente-ia-financeiro-db
+    plan: free
+    databaseName: assistente_ia
+    user: assistente_ia
