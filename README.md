@@ -4,11 +4,11 @@ Aplicação de gestão financeira com backend Rust/Axum/PostgreSQL e frontend Re
 
 ## Ativar o assistente de IA
 
-O assistente usa o Gemini 2.5 Flash-Lite pelo backend. O modelo tem cota gratuita, sujeita aos limites do projeto no Google AI Studio. O modo gratuito pode usar o conteúdo para melhorar produtos do Google; evite dados pessoais ou sensíveis nas descrições e revise os termos antes de disponibilizar para terceiros.
+O assistente usa o Gemini 3.1 Flash-Lite pelo backend. O modelo tem cota gratuita, sujeita aos limites do projeto no Google AI Studio. O modo gratuito pode usar o conteúdo para melhorar produtos do Google; evite dados pessoais ou sensíveis nas descrições e revise os termos antes de disponibilizar para terceiros.
 
 1. Crie uma chave em https://aistudio.google.com/apikey usando um projeto com cota gratuita. Não é necessário colocar a chave no frontend.
 2. No Render, abra `assistente-ia-financeiro-api` → **Environment** e configure `GEMINI_API_KEY` com a chave. Nunca envie a chave pelo chat ou faça commit dela.
-3. Configure `GEMINI_MODEL=gemini-2.5-flash-lite` (também é o padrão do backend) e salve com deploy.
+3. Configure `GEMINI_MODEL=gemini-3.1-flash-lite` (também é o padrão do backend) e salve com deploy.
 4. No site, abra o assistente, desmarque **Registrar automaticamente** e teste `Comprei um bombom por 1 real hoje`. Confira a análise sem salvar um registro fictício.
 
 Com **Registrar automaticamente** marcado, uma movimentação única com valor, data, tipo e categoria válidos é salva ao enviar. A categoria é escolhida entre as categorias do usuário e do perfil ativo. Se não houver categoria adequada, a tela pede revisão. Projetos só são vinculados quando mencionados e pertencentes ao usuário. Frases ambíguas pedem esclarecimento. Parcelas, assinaturas, transferências e várias movimentações na mesma frase não são registradas automaticamente nesta versão.

@@ -68,7 +68,7 @@ impl AppConfig {
                 api_key: env::var("GEMINI_API_KEY")
                     .unwrap_or_else(|_| "MISSING_API_KEY".to_string()),
                 model: env::var("GEMINI_MODEL")
-                    .unwrap_or_else(|_| "gemini-2.5-flash-lite".to_string()),
+                    .unwrap_or_else(|_| "gemini-3.1-flash-lite".to_string()),
             },
             cors_origin: env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".to_string()),
         }

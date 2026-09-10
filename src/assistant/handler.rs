@@ -34,19 +34,52 @@ fn provider_error(status: StatusCode) -> ApiError {
 
 fn output_schema() -> Value {
     json!({
-        "type": "OBJECT",
+        "type": "object",
         "properties": {
-            "amount": {"type": "NUMBER", "nullable": true},
-            "description": {"type": "STRING"},
-            "transaction_type": {"type": "STRING", "enum": ["income", "expense"], "nullable": true},
-            "transaction_date": {"type": "STRING", "nullable": true},
-            "category_id": {"type": "STRING", "nullable": true},
-            "project_id": {"type": "STRING", "nullable": true},
-            "clarification": {"type": "STRING", "nullable": true},
-            "entry_kind": {"type": "STRING", "enum": ["single", "multiple", "recurring", "unsupported"]}
+            "amount": {"type": ["number", "null"]},
+            "description": {"type": "string"},
+            "transaction_type": {"type": ["string", "null"], "enum": ["income", "expense", null]},
+            "transaction_date": {"type": ["string", "null"]},
+            "category_id": {"type": ["string", "null"]},
+            "project_id": {"type": ["string", "null"]},
+            "clarification": {"type": ["string", "null"]},
+            "entry_kind": {"type": "string", "enum": ["single", "multiple", "recurring", "unsupported"]}
         },
         "required": ["amount", "description", "transaction_type", "transaction_date", "category_id", "project_id", "clarification", "entry_kind"]
     })
+}
+
+fn interaction_text(result: &Value) -> Result<String, ApiError> {
+    if result["status"].as_str() != Some("completed") {
+        return Err(unavailable(
+            "AI_INCOMPLETE_RESPONSE",
+            "A IA não concluiu a análise. Reformule a frase. Nenhum lançamento foi salvo.",
+        ));
+    }
+    let output = result["steps"]
+        .as_array()
+        .and_then(|steps| {
+            steps
+                .iter()
+                .rev()
+                .find(|step| step["type"] == "model_output")
+        })
+        .and_then(|step| step["content"].as_array())
+        .map(|content| {
+            content
+                .iter()
+                .filter(|part| part["type"] == "text")
+                .filter_map(|part| part["text"].as_str())
+                .collect::<String>()
+        })
+        .unwrap_or_default();
+    if output.trim().is_empty() {
+        return Err(unavailable(
+            "AI_INVALID_RESPONSE",
+            "A IA retornou uma resposta vazia. Reformule a frase. Nenhum lançamento foi salvo.",
+        ));
+    }
+    Ok(output)
 }
 
 fn validate_proposal(
@@ -163,12 +196,14 @@ Erros de ortografia simples podem ser corrigidos. Não crie transações fictíc
         "projects": projects.iter().map(|(id, name)| json!({"id": id, "name": name})).collect::<Vec<_>>()
     });
     let body = json!({
-        "systemInstruction": {"parts": [{"text": prompt}]},
-        "contents": [{"role": "user", "parts": [{"text": context.to_string()}]}],
-        "generationConfig": {"responseMimeType": "application/json", "responseSchema": output_schema(), "temperature": 0, "maxOutputTokens": 1024}
+        "model": model,
+        "system_instruction": prompt,
+        "input": context.to_string(),
+        "store": false,
+        "generation_config": {"temperature": 0, "max_output_tokens": 2048},
+        "response_format": {"type": "text", "mime_type": "application/json", "schema": output_schema()}
     });
-    let url =
-        format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent");
+    let url = "https://generativelanguage.googleapis.com/v1beta/interactions";
     let response = state.http_client.post(url).header("x-goog-api-key", key)
         .timeout(Duration::from_secs(25)).json(&body).send().await
         .map_err(|_| unavailable("AI_CONNECTION", "Não foi possível conectar à IA. Tente novamente em instantes. Nenhum lançamento foi salvo."))?;
@@ -186,23 +221,7 @@ Erros de ortografia simples podem ser corrigidos. Não crie transações fictíc
             "A IA retornou uma resposta inválida. Tente reformular a frase.",
         )
     })?;
-    let candidate = &result["candidates"][0];
-    if candidate["finishReason"].as_str() != Some("STOP") {
-        return Err(unavailable(
-            "AI_INCOMPLETE_RESPONSE",
-            "A IA não concluiu a análise. Reformule a frase. Nenhum lançamento foi salvo.",
-        ));
-    }
-    let output = candidate["content"]["parts"]
-        .as_array()
-        .map(|parts| {
-            parts
-                .iter()
-                .filter(|p| p["thought"].as_bool() != Some(true))
-                .filter_map(|p| p["text"].as_str())
-                .collect::<String>()
-        })
-        .unwrap_or_default();
+    let output = interaction_text(&result)?;
     let mut proposal: ParsedTransaction = serde_json::from_str(&output)
         .map_err(|_| unavailable("AI_INVALID_RESPONSE", "A IA não conseguiu interpretar os dados. Reformule a frase. Nenhum lançamento foi salvo."))?;
     validate_proposal(
@@ -221,6 +240,18 @@ mod tests {
 
     fn proposal() -> ParsedTransaction {
         serde_json::from_value(json!({"amount": 1.0, "description": "Bombom", "transaction_type": "expense", "transaction_date": "2026-09-09", "category_id": null, "project_id": null, "clarification": null, "entry_kind": "single"})).unwrap()
+    }
+
+    #[test]
+    fn reads_only_completed_model_output() {
+        let result = json!({"status": "completed", "steps": [
+            {"type": "thought", "text": "private"},
+            {"type": "model_output", "content": [{"type": "text", "text": "old"}]},
+            {"type": "model_output", "content": [{"type": "thought", "text": "private"}, {"type": "text", "text": "{\"amount\":"}, {"type": "text", "text": "1}"}]}
+        ]});
+        assert_eq!(interaction_text(&result).unwrap(), "{\"amount\":1}");
+        assert!(interaction_text(&json!({"status": "failed"})).is_err());
+        assert!(interaction_text(&json!({"status": "completed", "steps": []})).is_err());
     }
 
     #[test]
