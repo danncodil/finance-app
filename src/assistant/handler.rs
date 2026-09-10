@@ -23,13 +23,40 @@ fn unavailable(code: &'static str, message: &str) -> ApiError {
 fn provider_error(status: StatusCode) -> ApiError {
     match status.as_u16() {
         400 | 401 | 403 => unavailable("AI_CONFIGURATION", "A IA não está habilitada no servidor. O responsável pelo site precisa verificar a chave e o acesso ao Gemini no Render."),
-        404 => unavailable("AI_MODEL_UNAVAILABLE", "O modelo de IA configurado está indisponível. O responsável pelo site precisa atualizar GEMINI_MODEL no Render."),
+        404 => unavailable("AI_MODEL_UNAVAILABLE", "O Google não disponibilizou o modelo para esta configuração. O responsável pelo site precisa verificar GEMINI_MODEL e o acesso do projeto no Google AI Studio."),
         429 => ApiError::Assistant {
             status: StatusCode::TOO_MANY_REQUESTS, code: "AI_QUOTA_EXCEEDED",
             message: "A cota de uso da IA foi atingida. Aguarde a renovação do limite ou use Novo Lançamento para registrar manualmente.".into(),
         },
         _ => unavailable("AI_UNAVAILABLE", "A IA está temporariamente indisponível. Tente novamente em instantes. Nenhum lançamento foi salvo."),
     }
+}
+
+// Diagnostic metadata only. Never expose provider messages, credentials or prompts.
+async fn diagnose_not_found(client: &reqwest::Client, key: &str, model: &str) -> bool {
+    let response = client
+        .get("https://generativelanguage.googleapis.com/v1beta/models")
+        .header("x-goog-api-key", key)
+        .timeout(Duration::from_secs(5))
+        .send()
+        .await;
+    let Ok(response) = response else {
+        return false;
+    };
+    let status = response.status();
+    let result = response.json::<Value>().await.unwrap_or(Value::Null);
+    let expected = format!("models/{model}");
+    let listed = result["models"].as_array().is_some_and(|models| {
+        models
+            .iter()
+            .any(|item| item["name"].as_str() == Some(expected.as_str()))
+    });
+    tracing::warn!(
+        models_status = status.as_u16(),
+        configured_model_listed = listed,
+        "Diagnóstico de acesso ao modelo Gemini"
+    );
+    status.is_success() && listed
 }
 
 fn output_schema() -> Value {
@@ -208,12 +235,15 @@ Erros de ortografia simples podem ser corrigidos. Não crie transações fictíc
         .timeout(Duration::from_secs(25)).json(&body).send().await
         .map_err(|_| unavailable("AI_CONNECTION", "Não foi possível conectar à IA. Tente novamente em instantes. Nenhum lançamento foi salvo."))?;
     if !response.status().is_success() {
+        let status = response.status();
         // Never log API keys, personal descriptions or provider response bodies.
-        tracing::warn!(
-            status = response.status().as_u16(),
-            "Falha no provedor de IA"
-        );
-        return Err(provider_error(response.status()));
+        tracing::warn!(status = status.as_u16(), "Falha no provedor de IA");
+        if status == StatusCode::NOT_FOUND
+            && diagnose_not_found(&state.http_client, key, model).await
+        {
+            return Err(unavailable("AI_PROJECT_ACCESS", "O Google lista o modelo, mas não autorizou a geração nesta configuração. O responsável pelo site precisa verificar o acesso da chave e do projeto no Google AI Studio. Nenhum lançamento foi salvo."));
+        }
+        return Err(provider_error(status));
     }
     let result: Value = response.json().await.map_err(|_| {
         unavailable(
