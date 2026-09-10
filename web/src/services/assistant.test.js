@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { localDate, transactionPayload } from './assistant.js';
+import { fallbackCategory, findFallbackCategory, localDate, transactionPayload } from './assistant.js';
 
 const categories = [{ id: 'food', name: 'Alimentação', type: 'expense', profile_type: 'personal' }];
 const proposal = { amount: 1, description: 'Bombom', transaction_date: '2026-09-09', transaction_type: 'expense', profile_type: 'personal', category_id: 'food', project_id: null, entry_kind: 'single', clarification: null };
@@ -13,6 +13,12 @@ test('a single bombom becomes an exact BRL expense with the interpreted date', (
 });
 test('uses local calendar date instead of slicing UTC', () => {
   assert.equal(localDate(new Date(2026, 8, 9, 23, 59)), '2026-09-09');
+});
+test('uses one neutral fallback category only when automatic registration needs it', () => {
+  const fallback = fallbackCategory(proposal, 'personal');
+  assert.deepEqual(fallback, { name: 'Outras despesas', type: 'expense', color: '#64748B', icon: 'CircleHelp', profile_type: 'personal' });
+  assert.equal(findFallbackCategory([{ id: 'other', ...fallback }], fallback).id, 'other');
+  assert.equal(fallbackCategory({ transaction_type: 'transfer' }, 'personal'), null);
 });
 test('never saves incomplete, ambiguous or unsupported proposals', () => {
   for (const change of [{ amount: null }, { amount: 0 }, { amount: -1 }, { amount: 1.234 }, { amount: Infinity }, { transaction_date: '2026-02-30' }, { transaction_date: '' }, { transaction_type: 'transfer' }, { entry_kind: 'multiple' }, { entry_kind: 'recurring' }, { entry_kind: undefined }, { clarification: 'Qual foi o valor?' }]) {

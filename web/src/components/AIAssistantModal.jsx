@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Sparkles, X, Loader2, Send, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { assistantService, projectService, categoryService, transactionService } from '../services/api';
-import { localDate, transactionPayload } from '../services/assistant';
+import { fallbackCategory, findFallbackCategory, localDate, transactionPayload } from '../services/assistant';
 import { useProfile } from '../context/ProfileContext';
 
 const field = 'w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white disabled:opacity-50';
@@ -54,6 +54,27 @@ export default function AIAssistantModal({ onTransactionSaved }) {
     setStep('success');
   }
 
+  async function ensureAutomaticCategory(proposal, profile, cats) {
+    if (proposal.category_id) return { proposal, categories: cats };
+    const fallback = fallbackCategory(proposal, profile);
+    if (!fallback) return { proposal, categories: cats };
+    let category = findFallbackCategory(cats, fallback);
+    if (category) return { proposal: { ...proposal, category_id: category.id }, categories: cats };
+    if (!category) {
+      try {
+        category = await categoryService.create(fallback);
+      } catch (err) {
+        // A concurrent request may have created it. Re-read before treating it as a failure.
+        const refreshed = await categoryService.list(profile);
+        const refreshedCategories = Array.isArray(refreshed) ? refreshed : [];
+        category = findFallbackCategory(refreshedCategories, fallback);
+        if (!category) throw err;
+        return { proposal: { ...proposal, category_id: category.id }, categories: refreshedCategories };
+      }
+    }
+    return { proposal: { ...proposal, category_id: category.id }, categories: [...cats, category] };
+  }
+
   async function analyze() {
     if (lock.current || !text.trim()) return;
     lock.current = true; setBusy(true); setError('');
@@ -68,10 +89,17 @@ export default function AIAssistantModal({ onTransactionSaved }) {
         profile === 'business' ? projectService.list('active') : Promise.resolve([]),
       ]);
       const projectList = Array.isArray(projs) ? projs : (projs?.projects || []);
-      const categoryList = Array.isArray(cats) ? cats : [];
-      setCategories(categoryList); setProjects(projectList); setData(proposal); setStep('review');
-      if (automatic && proposal.category_id) {
-        await save(proposal, profile, categoryList, projectList);
+      let categoryList = Array.isArray(cats) ? cats : [];
+      let resolvedProposal = proposal;
+      if (automatic) {
+        const resolved = await ensureAutomaticCategory(proposal, profile, categoryList);
+        resolvedProposal = resolved.proposal;
+        categoryList = resolved.categories;
+      }
+      if (profileRef.current !== profile) throw new Error('O perfil mudou. Analise a frase novamente.');
+      setCategories(categoryList); setProjects(projectList); setData(resolvedProposal); setStep('review');
+      if (automatic && resolvedProposal.category_id) {
+        await save(resolvedProposal, profile, categoryList, projectList);
       }
     } catch (err) {
       setError(err.message || 'Não foi possível analisar a frase. Tente novamente.');

@@ -2,6 +2,27 @@ export function localDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+export function fallbackCategory(data, profile) {
+  if (!['income', 'expense'].includes(data?.transaction_type) || !['personal', 'business'].includes(profile)) return null;
+  const expense = data.transaction_type === 'expense';
+  return {
+    name: expense ? 'Outras despesas' : 'Outras receitas',
+    type: data.transaction_type,
+    color: expense ? '#64748B' : '#059669',
+    icon: expense ? 'CircleHelp' : 'CirclePlus',
+    profile_type: profile,
+  };
+}
+
+export function findFallbackCategory(categories, fallback) {
+  if (!fallback) return null;
+  return categories.find(category =>
+    category.name === fallback.name &&
+    category.type === fallback.type &&
+    category.profile_type === fallback.profile_type
+  ) || null;
+}
+
 export function transactionPayload(data, profile, categories, projects = []) {
   if (data.clarification || data.entry_kind !== 'single') {
     throw new Error(data.clarification || 'A análise não está pronta. Atualize a página e tente novamente.');

@@ -11,7 +11,7 @@ O assistente usa o Gemini 3.1 Flash-Lite pelo backend. O modelo tem cota gratuit
 3. Configure `GEMINI_MODEL=gemini-3.1-flash-lite` (também é o padrão do backend) e salve com deploy.
 4. No site, abra o assistente, desmarque **Registrar automaticamente** e teste `Comprei um bombom por 1 real hoje`. Confira a análise sem salvar um registro fictício.
 
-Com **Registrar automaticamente** marcado, uma movimentação única com valor, data, tipo e categoria válidos é salva ao enviar. A categoria é escolhida entre as categorias do usuário e do perfil ativo. Se não houver categoria adequada, a tela pede revisão. Projetos só são vinculados quando mencionados e pertencentes ao usuário. Frases ambíguas pedem esclarecimento. Parcelas, assinaturas, transferências e várias movimentações na mesma frase não são registradas automaticamente nesta versão.
+Com **Registrar automaticamente** marcado, uma movimentação única com valor, data e tipo válidos é salva ao enviar. A categoria é escolhida entre as categorias do usuário e do perfil ativo; se a IA não encontrar uma adequada, cria uma categoria neutra (`Outras despesas` ou `Outras receitas`) no perfil correto antes de salvar. Com o modo desmarcado, a tela pede revisão e não cria nem salva nada. Projetos só são vinculados quando mencionados e pertencentes ao usuário. Frases ambíguas pedem esclarecimento. Parcelas, assinaturas, transferências e várias movimentações na mesma frase não são registradas automaticamente nesta versão.
 
 Erros de configuração, modelo indisponível, cota esgotada e falhas de conexão têm mensagens distintas. O assistente não repete automaticamente o salvamento após uma falha de rede: confira a tela Lançamentos antes de reenviar.
 
