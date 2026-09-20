@@ -80,7 +80,7 @@ export default function Register() {
     <div className="auth-shell relative overflow-hidden">
       {/* ── Orbs de Fundo (Nave Espacial) ────────────────────────────────────────── */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-white/10 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
 
       <AuthIntro register />
       <div className="auth-panel w-full animate-fade-in-up z-10 px-4 py-12 sm:px-8 lg:px-12">
@@ -96,7 +96,7 @@ export default function Register() {
         </div>
 
         {/* ── Card do Formulário (Glassmorphism) ────────────────────────── */}
-        <div className="bg-[#1b271d] backdrop-blur-3xl rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+        <div className="bg-[#181818] backdrop-blur-3xl rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
           {/* Alerta de Validação / Erro */}
           {errorMessage && (
             <div
@@ -283,8 +283,8 @@ export default function Register() {
               className="
                 flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl
                 bg-brand-400 hover:bg-brand-300 active:scale-[0.98]
-                text-[#101711] text-sm font-bold shadow-lg shadow-brand-500/20 ring-1 ring-brand-400/50
-                focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-[#1b271d]
+                text-[#111111] text-sm font-bold shadow-lg shadow-brand-500/20 ring-1 ring-brand-400/50
+                focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-[#181818]
                 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none
                 transition-all duration-200 cursor-pointer mt-2 uppercase tracking-widest
               "
@@ -337,7 +337,7 @@ export default function Register() {
           Já possui uma conta?{" "}
           <Link
             to="/login"
-            className="font-bold text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+            className="font-bold text-[#f2f2ef] hover:text-white hover:underline transition-colors"
           >
             Fazer login
           </Link>

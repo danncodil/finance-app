@@ -80,8 +80,8 @@ export default function TopHeader() {
   if (!user) return null;
 
   return (
-    <header className="hidden md:flex items-center justify-between px-7 py-4 border-b border-white/[.08] bg-[#151f16]/70 backdrop-blur-xl z-40 w-full relative">
-      <button onClick={() => window.dispatchEvent(new Event("trio:command"))} className="flex w-[250px] items-center gap-3 rounded-2xl border border-white/[.09] bg-white/[.045] px-3.5 py-2.5 text-left text-sm text-[#bfcabb] transition hover:bg-white/[.08]"><Search className="h-4 w-4 text-brand-400" /><span className="flex-1">Buscar página</span><kbd className="rounded-md border border-white/[.13] px-1.5 py-0.5 text-[10px] text-[#aeb8aa]">Ctrl K</kbd></button>
+    <header className="hidden md:flex items-center justify-between px-7 py-4 border-b border-white/[.08] bg-[#101010]/80 backdrop-blur-xl z-40 w-full relative">
+      <button onClick={() => window.dispatchEvent(new Event("trio:command"))} className="flex w-[250px] items-center gap-3 rounded-2xl border border-white/[.09] bg-white/[.045] px-3.5 py-2.5 text-left text-sm text-[#c9c9c6] transition hover:bg-white/[.08]"><Search className="h-4 w-4 text-brand-400" /><span className="flex-1">Buscar página</span><kbd className="rounded-md border border-white/[.13] px-1.5 py-0.5 text-[10px] text-[#a6a6a3]">Ctrl K</kbd></button>
       <div className="flex items-center justify-center shrink-0 absolute left-1/2 -translate-x-1/2">
         <ProfileToggle />
       </div>
@@ -93,7 +93,7 @@ export default function TopHeader() {
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="flex items-center gap-3 p-1.5 pr-3 rounded-full hover:bg-white/[.06] transition-colors cursor-pointer border border-transparent hover:border-white/[.1]"
         >
-          <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-[#17210e] font-bold overflow-hidden border-2 border-[#294229] shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-[#111111] font-bold overflow-hidden border-2 border-[#292929] shadow-sm">
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
             ) : (
@@ -101,36 +101,35 @@ export default function TopHeader() {
             )}
           </div>
           <div className="text-left hidden lg:block">
-            <p className="text-sm font-semibold text-[#edf1e9] leading-none">
+            <p className="text-sm font-semibold text-[#f2f2ef] leading-none">
               {user.name || "Usuário"}
             </p>
-            <p className="text-[11px] text-[#9dac96] mt-1 leading-none">
+            <p className="text-[11px] text-[#9c9c99] mt-1 leading-none">
               Minha Conta
             </p>
           </div>
-          <ChevronDown className={`w-4 h-4 text-[#9dac96] transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-4 h-4 text-[#9c9c99] transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
         </button>
 
         {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-72 bg-[#172118] rounded-2xl shadow-xl border border-white/[.1] overflow-hidden z-50 trio-enter">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+          <div className="absolute right-0 mt-3 w-[340px] bg-[#151515] rounded-[26px] shadow-[0_24px_70px_rgba(0,0,0,.48)] border border-white/[.12] overflow-hidden z-50 trio-enter">
+            <div className="p-5 border-b border-white/[.08] bg-[radial-gradient(circle_at_80%_0%,rgba(255,255,255,.09),transparent_32%)]">
+              <div className="flex items-center gap-3"><div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl bg-[#f3f3ef] text-[#111] grid place-items-center font-bold">{user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover grayscale" /> : user.name?.charAt(0).toUpperCase()}</div><div className="min-w-0"><p className="text-sm font-bold text-white truncate">
                 {user.name || "Usuário"}
-              </p>
-              <p className="text-xs text-slate-500 truncate mt-0.5">
+              </p><p className="text-xs text-[#989894] truncate mt-0.5">
                 {user.email}
-              </p>
+              </p></div></div>
             </div>
 
-            <div className="p-4">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            <div className="p-5">
+              <p className="trio-kicker text-[#a8a8a5] mb-3">
                 Escolha seu Avatar
               </p>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-2.5">
                 {/* Botão de Upload Customizado */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-full aspect-square rounded-xl overflow-hidden cursor-pointer transition-transform hover:scale-105 hover:shadow-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-500 border border-dashed border-slate-300 dark:border-slate-600 ring-1 ring-transparent hover:ring-blue-500/50"
+                  className="relative w-full aspect-square rounded-2xl overflow-hidden cursor-pointer transition-transform hover:scale-105 bg-[#202020] flex items-center justify-center text-[#a6a6a3] hover:text-white border border-dashed border-white/[.2] ring-1 ring-transparent hover:ring-white/60"
                   title="Enviar sua foto"
                 >
                   <Camera className="w-5 h-5" />
@@ -150,11 +149,11 @@ export default function TopHeader() {
                     onClick={() => handleSelectAvatar(avatar.url)}
                     className={`
                       relative w-full aspect-square rounded-xl overflow-hidden cursor-pointer
-                      transition-transform hover:scale-105 hover:shadow-md
-                      ${user.avatar === avatar.url ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-slate-900' : 'ring-1 ring-slate-200 dark:ring-slate-700'}
+                      transition-transform hover:scale-105 grayscale hover:grayscale-0
+                      ${user.avatar === avatar.url ? 'ring-2 ring-white ring-offset-2 ring-offset-[#151515]' : 'ring-1 ring-white/[.12]'}
                     `}
                   >
-                    <img src={avatar.url} alt={`Avatar ${avatar.id}`} className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
+                    <img src={avatar.url} alt={`Avatar ${avatar.id}`} className="w-full h-full object-cover bg-[#202020]" />
                     {user.avatar === avatar.url && (
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                         <Check className="w-5 h-5 text-white drop-shadow-md" />
@@ -166,17 +165,17 @@ export default function TopHeader() {
             </div>
 
             {/* Ações (Tema e Configurações) */}
-            <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="m-3 mt-0 rounded-2xl border border-white/[.08] bg-white/[.035] p-1.5">
               <button
                 onClick={() => {
                   toggleTheme();
                 }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#d5d5d2] hover:bg-white/[.08] transition-colors cursor-pointer"
               >
                 {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-500 drop-shadow-sm" />
+                  <Sun className="w-4 h-4 text-white" />
                 ) : (
-                  <Moon className="w-4 h-4 text-blue-500" />
+                  <Moon className="w-4 h-4 text-white" />
                 )}
                 {isDark ? "Modo Claro" : "Modo Escuro"}
               </button>
@@ -186,20 +185,20 @@ export default function TopHeader() {
                   setIsDropdownOpen(false);
                   navigate("/settings");
                 }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer mt-0.5"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#d5d5d2] hover:bg-white/[.08] transition-colors cursor-pointer mt-0.5"
               >
-                <Settings className="w-4 h-4 text-slate-400" />
+                <Settings className="w-4 h-4 text-[#c4c4c1]" />
                 Configurações
               </button>
             </div>
 
-            <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            <div className="px-3 pb-3">
               <button
                 onClick={() => {
                   setIsDropdownOpen(false);
                   logout();
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-400/10 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 Sair da Conta

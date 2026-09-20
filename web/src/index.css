@@ -6,17 +6,17 @@
 @custom-variant dark (&:is(.dark *));
 /* ── Design Tokens (CSS custom properties) ──────────────────────────── */
 @theme {
-  --color-brand-50: #f6ffe8;
-  --color-brand-100: #ebffc8;
-  --color-brand-200: #dcff9f;
-  --color-brand-300: #ceff72;
-  --color-brand-400: #c5ff5c;
-  --color-brand-500: #b6f24b;
-  --color-brand-600: #94cb33;
-  --color-brand-700: #719f23;
-  --color-brand-800: #4d6e17;
-  --color-brand-900: #30450f;
-  --color-brand-950: #17240a;
+  --color-brand-50: #fafafa;
+  --color-brand-100: #f5f5f5;
+  --color-brand-200: #e7e7e7;
+  --color-brand-300: #d4d4d4;
+  --color-brand-400: #f2f2ef;
+  --color-brand-500: #d8d8d5;
+  --color-brand-600: #b1b1ae;
+  --color-brand-700: #858582;
+  --color-brand-800: #585856;
+  --color-brand-900: #2b2b2a;
+  --color-brand-950: #141414;
 
   /* Amarelo — alertas, badges, destaques de ação */
   --color-accent-50: #FFFBEB;
@@ -61,7 +61,7 @@
 /* ── Reset & Base ───────────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-brand-300) transparent;
+  scrollbar-color: #5d5d5b transparent;
 }
 
 body {
@@ -74,15 +74,10 @@ body {
 
 h1, h2, h3, .font-display { font-family: var(--font-display); }
 
-.trio-shell {
-  background: #101711;
-  color: #f4f5ef;
-}
+.trio-shell { background: #0b0b0b; color: #f5f5f3; }
 
 .trio-main {
-  background:
-    radial-gradient(circle at 78% -10%, rgba(197,255,92,.09), transparent 28rem),
-    linear-gradient(135deg, #111a13 0%, #101711 48%, #121912 100%);
+  background: radial-gradient(circle at 78% -10%, rgba(255,255,255,.07), transparent 28rem), linear-gradient(135deg, #0c0c0c 0%, #101010 48%, #0c0c0c 100%);
 }
 
 .trio-page {
@@ -92,37 +87,35 @@ h1, h2, h3, .font-display { font-family: var(--font-display); }
 }
 
 .trio-card {
-  background: rgba(27, 37, 28, .88);
-  border: 1px solid rgba(214, 242, 181, .12);
+  background: rgba(23, 23, 23, .92);
+  border: 1px solid rgba(255, 255, 255, .12);
   box-shadow: 0 16px 50px rgba(0, 0, 0, .16);
 }
 
-.trio-card:hover { border-color: rgba(207, 255, 114, .28); }
+.trio-card:hover { border-color: rgba(255, 255, 255, .3); }
 
-.trio-page .bg-white { background-color: rgba(27, 37, 28, .88); }
-.trio-page .bg-slate-50 { background-color: rgba(38, 51, 39, .72); }
-.trio-page .text-slate-900, .trio-page .text-slate-800 { color: #f4f5ef; }
-.trio-page .text-slate-700 { color: #d5ddd0; }
-.trio-page .text-slate-600, .trio-page .text-slate-500 { color: #aab5a6; }
-.trio-page .border-slate-100, .trio-page .border-slate-200 { border-color: rgba(214, 242, 181, .12); }
+.trio-page .bg-white { background-color: rgba(23, 23, 23, .92); }
+.trio-page .bg-slate-50 { background-color: rgba(38, 38, 38, .72); }
+.trio-page .text-slate-900, .trio-page .text-slate-800 { color: #f5f5f3; }
+.trio-page .text-slate-700 { color: #d5d5d2; }
+.trio-page .text-slate-600, .trio-page .text-slate-500 { color: #a8a8a5; }
+.trio-page .border-slate-100, .trio-page .border-slate-200 { border-color: rgba(255, 255, 255, .12); }
 
-.trio-kicker { letter-spacing: .18em; text-transform: uppercase; font-size: .7rem; font-weight: 700; color: #c5ff5c; }
+.trio-kicker { letter-spacing: .18em; text-transform: uppercase; font-size: .7rem; font-weight: 700; color: #bdbdb9; }
 
 .trio-title { font-family: var(--font-display); font-weight: 600; letter-spacing: -.06em; }
 
-.trio-aurora {
-  background: radial-gradient(circle at 88% 18%, rgba(207, 255, 114, .28), transparent 18%), linear-gradient(128deg, #263a25, #172218 74%);
-}
+.trio-aurora { background: radial-gradient(circle at 88% 18%, rgba(255,255,255,.14), transparent 18%), linear-gradient(128deg, #262626, #151515 74%); }
 
 .trio-button {
-  background: #d6ff6c;
-  color: #101711;
-  box-shadow: 0 10px 32px rgba(197,255,92,.18);
+  background: #f4f4f1;
+  color: #101010;
+  box-shadow: 0 10px 32px rgba(255,255,255,.12);
 }
-.trio-button:hover { background: #e1ff92; transform: translateY(-2px); box-shadow: 0 15px 35px rgba(197,255,92,.25); }
+.trio-button:hover { background: #ffffff; transform: translateY(-2px); box-shadow: 0 15px 35px rgba(255,255,255,.18); }
 
 .trio-focus:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid #d6ff6c; outline-offset: 3px;
+  outline: 2px solid #fff; outline-offset: 3px;
 }
 
 @keyframes trio-rise { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -141,9 +134,9 @@ h1, h2, h3, .font-display { font-family: var(--font-display); }
 
 @media (max-width: 767px) { .trio-page { padding: 1.5rem 1rem 6rem; } }
 
-.auth-shell { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(460px, .85fr); min-height: 100vh; background: #111a13; }
-.auth-intro { background: #d6ff6c; isolation: isolate; }
-.auth-orbit { position: absolute; border-radius: 999px; border: 1px solid rgba(33, 52, 21, .18); pointer-events: none; }
+.auth-shell { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(460px, .85fr); min-height: 100vh; background: #0e0e0e; }
+.auth-intro { background: #f1f1ed; isolation: isolate; }
+.auth-orbit { position: absolute; border-radius: 999px; border: 1px solid rgba(0, 0, 0, .16); pointer-events: none; }
 .auth-orbit-one { width: 50rem; height: 50rem; right: -18rem; bottom: -26rem; }
 .auth-orbit-two { width: 35rem; height: 35rem; right: -11rem; bottom: -18rem; }
 .auth-panel { width: min(100%, 34rem); margin-inline: auto; }

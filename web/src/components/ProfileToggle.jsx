@@ -16,7 +16,7 @@ export default function ProfileToggle() {
       <button
         onClick={() => { if (isBusiness) toggleProfile(); }}
         className={`relative z-10 flex items-center justify-center gap-2 flex-1 py-1.5 text-xs font-bold rounded-full transition-colors duration-300 cursor-pointer
-          ${!isBusiness ? "text-[#11190f]" : "text-[#aab5a6] hover:text-white"}
+          ${!isBusiness ? "text-[#111111]" : "text-[#a8a8a5] hover:text-white"}
         `}
       >
         <User className={`w-4 h-4 transition-transform duration-300 ${!isBusiness ? "scale-110" : ""}`} />
@@ -27,7 +27,7 @@ export default function ProfileToggle() {
       <button
         onClick={() => { if (!isBusiness) toggleProfile(); }}
         className={`relative z-10 flex items-center justify-center gap-2 flex-1 py-1.5 text-xs font-bold rounded-full transition-colors duration-300 cursor-pointer
-          ${isBusiness ? "text-[#11190f]" : "text-[#aab5a6] hover:text-white"}
+          ${isBusiness ? "text-[#111111]" : "text-[#a8a8a5] hover:text-white"}
         `}
       >
         <Briefcase className={`w-4 h-4 transition-transform duration-300 ${isBusiness ? "scale-110" : ""}`} />

@@ -12,11 +12,11 @@ export default function CommandMenu() {
   const filtered = useMemo(() => commands.filter(([label]) => label.toLowerCase().includes(query.toLowerCase())), [query]);
   if (!open) return null;
   const go = (path) => { navigate(path); setOpen(false); setQuery(""); };
-  return <div role="dialog" aria-modal="true" aria-label="Busca rápida" onMouseDown={() => setOpen(false)} className="fixed inset-0 z-[100] grid place-items-start pt-[18vh] bg-[#080d08]/65 backdrop-blur-sm px-4">
-    <div onMouseDown={e => e.stopPropagation()} className="w-full max-w-xl rounded-3xl border border-white/[.12] bg-[#172118] shadow-[0_30px_80px_rgba(0,0,0,.45)] overflow-hidden trio-enter">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[.08]"><Search className="w-5 h-5 text-brand-400" /><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Para onde você quer ir?" className="flex-1 bg-transparent outline-none text-white placeholder:text-[#809080]" /><button onClick={() => setOpen(false)} className="rounded-lg p-1 text-[#9dac96] hover:text-white"><X className="w-5 h-5" /></button></div>
-      <div className="p-2">{filtered.map(([label, path, Icon]) => <button key={path} onClick={() => go(path)} className="w-full flex items-center gap-3 rounded-2xl p-3 text-left text-[#dce5d8] hover:bg-brand-400 hover:text-[#101711] transition-colors"><span className="grid place-items-center w-9 h-9 rounded-xl bg-white/[.06]"><Icon className="w-4 h-4" /></span><span className="flex-1 font-medium">{label}</span><ArrowRight className="w-4 h-4 opacity-55" /></button>)}</div>
-      <div className="px-5 py-3 border-t border-white/[.08] text-xs text-[#9dac96]">Use <kbd className="rounded bg-white/[.08] px-1.5 py-0.5">Esc</kbd> para fechar</div>
+  return <div role="dialog" aria-modal="true" aria-label="Busca rápida" onMouseDown={() => setOpen(false)} className="fixed inset-0 z-[100] grid place-items-start pt-[18vh] bg-black/70 backdrop-blur-sm px-4">
+    <div onMouseDown={e => e.stopPropagation()} className="w-full max-w-xl rounded-3xl border border-white/[.12] bg-[#151515] shadow-[0_30px_80px_rgba(0,0,0,.55)] overflow-hidden trio-enter">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[.08]"><Search className="w-5 h-5 text-brand-400" /><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Para onde você quer ir?" className="flex-1 bg-transparent outline-none text-white placeholder:text-[#7e7e7b]" /><button onClick={() => setOpen(false)} className="rounded-lg p-1 text-[#a3a3a0] hover:text-white"><X className="w-5 h-5" /></button></div>
+      <div className="p-2">{filtered.map(([label, path, Icon]) => <button key={path} onClick={() => go(path)} className="w-full flex items-center gap-3 rounded-2xl p-3 text-left text-[#e2e2df] hover:bg-brand-400 hover:text-[#111111] transition-colors"><span className="grid place-items-center w-9 h-9 rounded-xl bg-white/[.06]"><Icon className="w-4 h-4" /></span><span className="flex-1 font-medium">{label}</span><ArrowRight className="w-4 h-4 opacity-55" /></button>)}</div>
+      <div className="px-5 py-3 border-t border-white/[.08] text-xs text-[#999996]">Use <kbd className="rounded bg-white/[.08] px-1.5 py-0.5">Esc</kbd> para fechar</div>
     </div>
   </div>;
 }

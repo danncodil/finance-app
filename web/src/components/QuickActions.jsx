@@ -1,47 +1,17 @@
-// src/components/QuickActions.jsx
-import { Plus, FileDown, ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, FileBarChart2, Tags } from "lucide-react";
 import { Link } from "react-router-dom";
 
-/**
- * Barra de ações rápidas do dashboard com suporte a Dark Mode.
- */
-export default function QuickActions() {
-  return (
-    <div
-      className="flex flex-wrap items-center gap-3 animate-fade-in-up"
-      style={{ animationDelay: "350ms" }}
-    >
-      {/* Botão para página de Lançamentos */}
-      <Link
-        to="/transactions"
-        className="
-          inline-flex items-center gap-2 px-4 py-2.5
-          bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-medium
-          rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
-          hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-brand-600 dark:hover:text-brand-400
-          active:scale-[0.97]
-          transition-all duration-200 cursor-pointer shadow-sm
-        "
-      >
-        <ArrowLeftRight className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-        Ver Todos Lançamentos
-      </Link>
+const actions = [
+  { to: "/transactions", icon: ArrowLeftRight, eyebrow: "Movimentações", title: "Ver lançamentos", detail: "Consulte cada entrada e saída" },
+  { to: "/categories", icon: Tags, eyebrow: "Organização", title: "Categorias", detail: "Dê contexto ao seu dinheiro" },
+  { to: "/reports", icon: FileBarChart2, eyebrow: "Leitura", title: "Relatórios", detail: "Transforme dados em decisões" },
+];
 
-      {/* Botão rápido para Relatórios */}
-      <Link
-        to="/reports"
-        className="
-          inline-flex items-center gap-2 px-4 py-2.5
-          bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-medium
-          rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
-          hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-brand-600 dark:hover:text-brand-400
-          active:scale-[0.97]
-          transition-all duration-200 cursor-pointer shadow-sm
-        "
-      >
-        <FileDown className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-        Relatórios Financeiros
-      </Link>
-    </div>
-  );
+export default function QuickActions() {
+  return <section className="grid grid-cols-1 gap-3 md:grid-cols-3 trio-enter" style={{ animationDelay: "350ms" }}>
+    {actions.map(({ to, icon: Icon, eyebrow, title, detail }) => <Link key={to} to={to} className="trio-card group relative rounded-3xl p-5 transition-all duration-300 hover:-translate-y-1">
+      <div className="flex items-start justify-between"><span className="grid h-10 w-10 place-items-center rounded-2xl border border-white/[.12] bg-white/[.055] text-white"><Icon className="h-4 w-4" /></span><ArrowUpRight className="h-4 w-4 text-[#8f8f8c] transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-white" /></div>
+      <p className="trio-kicker mt-8 text-[#a8a8a5]">{eyebrow}</p><h3 className="mt-2 text-lg font-semibold text-white">{title}</h3><p className="mt-1 text-sm text-[#a8a8a5]">{detail}</p>
+    </Link>)}
+  </section>;
 }

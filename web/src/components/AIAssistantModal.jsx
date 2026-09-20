@@ -4,7 +4,7 @@ import { assistantService, projectService, categoryService, transactionService }
 import { fallbackCategory, findFallbackCategory, localDate, transactionPayload } from '../services/assistant';
 import { useProfile } from '../context/ProfileContext';
 
-const field = 'w-full px-3.5 py-2.5 rounded-xl bg-[#121b13] border border-white/[.12] text-sm text-white placeholder:text-[#758371] focus:outline-none focus:border-brand-400 disabled:opacity-50';
+const field = 'w-full px-3.5 py-2.5 rounded-xl bg-[#111111] border border-white/[.12] text-sm text-white placeholder:text-[#7b7b78] focus:outline-none focus:border-brand-400 disabled:opacity-50';
 const primary = 'trio-button w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed';
 const label = 'trio-kicker block text-[#bdc8b8] mb-1.5';
 
@@ -120,7 +120,7 @@ export default function AIAssistantModal({ onTransactionSaved }) {
   const matchingCategories = categories.filter(c => c.type === data?.transaction_type);
 
   return <>
-    <button onClick={open} aria-label="Assistente de IA" className="fixed bottom-[84px] left-4 md:left-auto md:bottom-6 md:right-6 z-40 w-12 h-12 rounded-full bg-brand-400 hover:bg-brand-300 text-[#101711] shadow-[0_10px_32px_rgba(197,255,92,.3)] flex items-center justify-center transition-transform hover:scale-105">
+    <button onClick={open} aria-label="Assistente de IA" className="fixed bottom-[84px] left-4 md:left-auto md:bottom-6 md:right-6 z-40 w-12 h-12 rounded-full bg-brand-400 hover:bg-brand-300 text-[#111111] shadow-[0_10px_32px_rgba(255,255,255,.2)] flex items-center justify-center transition-transform hover:scale-105">
       <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Assistente TRIO" className="w-7 h-7 object-contain" />
     </button>
     {isOpen && <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
