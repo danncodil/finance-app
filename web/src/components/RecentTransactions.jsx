@@ -48,9 +48,9 @@ export default function RecentTransactions({ transactions = [], categories = [] 
             <li
               key={tx.id}
               className="
-                flex items-center justify-between p-4 rounded-2xl
+                flex items-center justify-between gap-2 p-4 rounded-2xl
                 bg-transparent hover:bg-slate-50/80 dark:hover:bg-slate-800/60
-                hover:-translate-y-0.5 transition-all duration-200 cursor-default
+                transition-colors duration-200 cursor-default
               "
             >
               {/* Lado esquerdo: ícone + info */}

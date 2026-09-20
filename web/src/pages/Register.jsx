@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, Eye, EyeOff, AlertTriangle, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import AuthIntro from "../components/AuthIntro";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -76,17 +77,18 @@ export default function Register() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-slate-950 overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
+    <div className="trio-auth relative flex min-h-screen items-center justify-center bg-slate-950 overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
+      <AuthIntro />
       {/* ── Orbs de Fundo (Nave Espacial) ────────────────────────────────────────── */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
 
-      <div className="w-full max-w-md animate-fade-in-up z-10">
+      <div className="trio-auth-content w-full max-w-md animate-fade-in-up z-10">
         {/* ── Logo e Cabeçalho ────────────────────────────────────────── */}
         <div className="text-center mb-8">
           <div className="flex flex-col items-center justify-center gap-2 mb-4">
             <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Símbolo TRIO" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
-            <h1 className="text-3xl font-bold text-white tracking-widest leading-none mt-2">TRIO</h1>
+            <h1 className="text-4xl font-bold text-white tracking-[-.07em] leading-none mt-2">trio<span className="text-[#d9fb72]">.</span></h1>
           </div>
           <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">
             Criar Nova Conta

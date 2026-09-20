@@ -1,5 +1,7 @@
 // src/App.jsx
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { ProfileProvider } from "./context/ProfileContext";
@@ -7,44 +9,45 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import Sidebar from "./components/Sidebar";
 import BottomNavigation from "./components/BottomNavigation";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-
-import Categories from "./pages/Categories";
-import ReportsDashboard from "./pages/ReportsDashboard";
-import Settings from "./pages/Settings";
-import Transactions from "./pages/Transactions";
-import Projects from "./pages/Projects";
-import Goals from "./pages/Goals";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Categories = lazy(() => import("./pages/Categories"));
+const ReportsDashboard = lazy(() => import("./pages/ReportsDashboard"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const Projects = lazy(() => import("./pages/Projects"));
+const Goals = lazy(() => import("./pages/Goals"));
 import ProfileToggle from "./components/ProfileToggle";
 import TopHeader from "./components/TopHeader";
 import AIAssistantModal from "./components/AIAssistantModal";
-import { Wallet, Sun, Moon } from "lucide-react";
+import CommandMenu from "./components/CommandMenu";
+import { Search } from "lucide-react";
 
 /**
  * Layout principal para as áreas autenticadas do sistema
  */
 function AppLayout() {
-  const { isDark, toggleTheme } = useTheme();
-
+  const location = useLocation();
+  const reduceMotion = useReducedMotion();
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="trio-app flex flex-col md:flex-row h-screen overflow-hidden text-slate-900 dark:text-slate-100">
       {/* ── Top Navbar Mobile ────────────────────────── */}
-      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 shrink-0 z-30 shadow-sm relative">
+      <header className="trio-mobile-header md:hidden flex items-center justify-between px-4 py-3 shrink-0 z-30 relative">
         {/* Lado Esquerdo: Símbolo e Nome */}
         <div className="flex items-center gap-2">
-          <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Símbolo TRIO" className="w-7 h-7 shrink-0 object-contain drop-shadow-md" />
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#1c211a]"><img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="" className="size-6 object-contain" /></span>
           <div className="flex flex-col justify-center">
-            <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400 tracking-[0.2em] leading-none drop-shadow-sm pb-0.5">
-              TRIO
+            <span className="text-xl font-bold text-[#1c211a] dark:text-white tracking-[-.07em] leading-none" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              trio<span className="text-[#8dbd3c]">.</span>
             </span>
           </div>
         </div>
 
         {/* Lado Direito: Perfil (Sem Menu) */}
         <div className="flex items-center gap-1">
-          <div className="scale-[0.8] origin-right">
+          <button type="button" onClick={() => window.dispatchEvent(new Event("trio:open-command"))} aria-label="Buscar páginas" className="trio-mobile-search grid size-10 place-items-center rounded-full"><Search size={19} /></button>
+          <div className="scale-[0.75] origin-right -mr-6">
             <ProfileToggle />
           </div>
         </div>
@@ -55,15 +58,14 @@ function AppLayout() {
 
       {/* Conteúdo principal com scroll */}
       {/* Adicionado pb-20 no mobile para o conteúdo não ficar embaixo da Bottom Navigation */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative pb-[68px] md:pb-0">
+      <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative pb-[72px] md:pb-0">
         {/* Orbs de luz no fundo para realçar o Glassmorphism */}
-        <div className="hidden dark:block absolute top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full mix-blend-screen filter blur-[128px] opacity-70 pointer-events-none" />
-        <div className="hidden dark:block absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full mix-blend-screen filter blur-[128px] opacity-70 pointer-events-none" />
         {/* Header Desktop (para o Toggle e Perfil) */}
         <TopHeader />
         
-        <div className="flex-1 overflow-y-auto">
-          <Routes>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <AnimatePresence mode="wait" initial={false}><motion.div key={location.pathname} className="min-h-full" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, y: -8 }} transition={{ duration: .22, ease: "easeOut" }}>
+          <Suspense fallback={<div className="p-8 text-sm text-slate-500" role="status">Carregando página...</div>}><Routes location={location}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/categories" element={<Categories />} />
@@ -72,11 +74,13 @@ function AppLayout() {
             <Route path="/reports" element={<ReportsDashboard />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          </Routes></Suspense>
+          </motion.div></AnimatePresence>
         </div>
         
         {/* Floating AI Assistant Button & Modal */}
         <AIAssistantModal />
+        <CommandMenu />
       </main>
 
       {/* Barra de Navegação Inferior (Mobile) */}
@@ -90,7 +94,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <ProfileProvider>
-          <Routes>
+          <Suspense fallback={<div className="min-h-screen grid place-items-center text-sm text-slate-500" role="status">Carregando página...</div>}><Routes>
             {/* Rotas públicas de autenticação */}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
@@ -101,7 +105,7 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/*" element={<AppLayout />} />
             </Route>
-          </Routes>
+          </Routes></Suspense>
         </ProfileProvider>
       </AuthProvider>
     </ThemeProvider>

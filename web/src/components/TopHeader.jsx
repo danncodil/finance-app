@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { User, LogOut, ChevronDown, Check, Camera, Settings, Sun, Moon } from "lucide-react";
+import { User, LogOut, ChevronDown, Check, Camera, Settings, Sun, Moon, Search } from "lucide-react";
 import ProfileToggle from "./ProfileToggle";
 
 // Usando robozinhos estilosos do Dicebear como padrão abstrato
@@ -80,9 +80,9 @@ export default function TopHeader() {
   if (!user) return null;
 
   return (
-    <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/40 backdrop-blur-sm z-40 w-full relative">
+    <header className="trio-top-header hidden md:flex items-center justify-between px-8 py-4 z-40 w-full relative">
       {/* Spacer esquerdo para centralização perfeita */}
-      <div className="flex-1" />
+      <div className="flex-1"><button type="button" onClick={() => window.dispatchEvent(new Event("trio:open-command"))} className="trio-search-trigger inline-flex items-center gap-2 px-4 py-2 text-sm" aria-label="Buscar páginas"><Search size={17} /><span>Buscar página</span><kbd className="ml-6 text-[11px]">Ctrl K</kbd></button></div>
 
       {/* Elemento Centralizado */}
       <div className="flex items-center justify-center shrink-0">

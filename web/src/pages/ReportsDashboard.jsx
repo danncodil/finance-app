@@ -40,7 +40,7 @@ export default function ReportsDashboard() {
   if (error) return <p role="alert" className="p-8 text-rose-600">{error}</p>;
   if (!report) return <p className="p-8">Carregando relatórios...</p>;
   return (
-    <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto relative min-h-full space-y-6 animate-fade-in pb-24 sm:pb-6">
+    <div className="trio-page px-4 sm:px-8 py-6 max-w-7xl mx-auto relative min-h-full space-y-6 animate-fade-in pb-24 sm:pb-6">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
