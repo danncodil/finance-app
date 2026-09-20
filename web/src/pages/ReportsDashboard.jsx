@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { transactionService, categoryService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Sparkles, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Sparkles, ArrowUpRight, ArrowDownRight, ArrowRight } from "lucide-react";
 
 export default function ReportsDashboard() {
   const { currentProfile } = useProfile();
@@ -40,7 +40,7 @@ export default function ReportsDashboard() {
   if (error) return <p role="alert" className="p-8 text-rose-600">{error}</p>;
   if (!report) return <p className="p-8">Carregando relatórios...</p>;
   return (
-    <div className="trio-page px-4 sm:px-8 py-6 max-w-7xl mx-auto relative min-h-full space-y-6 animate-fade-in pb-24 sm:pb-6">
+    <div className="trio-page relative min-h-full space-y-6 pb-24 sm:pb-8">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -56,18 +56,18 @@ export default function ReportsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Resumo Mensal */}
-        <div className="md:col-span-2 bg-slate-900 rounded-3xl p-8 border border-white/10 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="md:col-span-2 trio-aurora trio-shine rounded-[30px] p-8 border border-white/[.1] shadow-xl relative overflow-hidden group trio-enter">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-400/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
-              <h2 className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Balanço do Mês</h2>
-              <div className="text-4xl font-extrabold text-white">{currency(report.balance)}</div>
+              <h2 className="trio-kicker text-[#c2ceb9] mb-3">Balanço do Mês</h2>
+              <div className="font-display text-5xl tracking-[-.07em] font-semibold text-white">{currency(report.balance)}</div>
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium bg-emerald-400/10 px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-2 text-[#63efbd] text-sm font-medium bg-[#153a2c] px-3 py-1.5 rounded-full">
                   <ArrowUpRight className="w-4 h-4" />
                   Receitas do mês
                 </div>
-                <div className="flex items-center gap-2 text-rose-400 text-sm font-medium bg-rose-400/10 px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-2 text-[#ff9aa5] text-sm font-medium bg-[#3b2025] px-3 py-1.5 rounded-full">
                   <ArrowDownRight className="w-4 h-4" />
                   Despesas do mês
                 </div>
@@ -87,9 +87,9 @@ export default function ReportsDashboard() {
         </div>
 
         {/* AI Insights Card */}
-        <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 rounded-3xl p-8 border border-purple-500/30 shadow-[0_0_30px_rgba(139,92,246,0.15)] flex flex-col justify-between">
+        <div className="bg-[#202d20] rounded-[30px] p-8 border border-brand-300/20 shadow-[0_0_30px_rgba(197,255,92,.08)] flex flex-col justify-between trio-enter" style={{ animationDelay: "80ms" }}>
           <div>
-            <div className="flex items-center gap-2 text-purple-300 mb-4">
+            <div className="flex items-center gap-2 text-brand-300 mb-4">
               <Sparkles className="w-5 h-5 animate-pulse" />
               <span className="font-bold text-sm tracking-wide">RESUMO DO MÊS</span>
             </div>
@@ -97,13 +97,13 @@ export default function ReportsDashboard() {
               {report.balance >= 0 ? "Suas receitas cobrem as despesas registradas neste mês." : "As despesas registradas superam as receitas neste mês."}
             </p>
           </div>
-          <button onClick={() => document.getElementById("expense-breakdown")?.scrollIntoView({ behavior: "smooth" })} className="mt-6 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-semibold transition-all">
-            Ver detalhes
+          <button onClick={() => document.getElementById("expense-breakdown")?.scrollIntoView({ behavior: "smooth" })} className="trio-button mt-6 inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold transition-all">
+            Ver detalhes <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Gráfico de Despesas (Donut) */}
-        <div className="md:col-span-2 bg-white dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-100 dark:border-white/5 shadow-card flex flex-col md:flex-row items-center gap-8">
+        <div className="md:col-span-2 trio-card rounded-[30px] p-8 border border-white/[.08] shadow-card flex flex-col md:flex-row items-center gap-8 trio-enter" style={{ animationDelay: "140ms" }}>
           <div className="w-full md:w-1/2">
             <h2 id="expense-breakdown" className="text-lg font-bold text-slate-900 dark:text-white mb-2">Composição de Gastos</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Onde seu dinheiro está indo</p>
@@ -152,8 +152,8 @@ export default function ReportsDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-100 dark:border-white/5 shadow-card">
-          <h2 className="text-lg font-bold mb-6">Distribuição das despesas</h2>
+        <div className="trio-card rounded-[30px] p-8 border border-white/[.08] shadow-card trio-enter" style={{ animationDelay: "200ms" }}>
+          <h2 className="font-display text-xl font-semibold tracking-[-.04em] text-white mb-6">Distribuição das despesas</h2>
           {expenseData.length === 0 ? <p>Sem despesas neste mês.</p> : expenseData.map(item => (
             <p key={item.name} className="flex justify-between mb-3"><span>{item.name}</span><span>{(item.value / report.expense * 100).toFixed(1)}%</span></p>
           ))}

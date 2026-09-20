@@ -63,26 +63,26 @@ export default function Login() {
   };
 
   return (
-    <div className="trio-auth relative flex min-h-screen items-center justify-center bg-slate-950 overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
-      <AuthIntro />
+    <div className="auth-shell relative overflow-hidden">
       {/* ── Orbs de Fundo (Nave Espacial) ────────────────────────────────────────── */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full mix-blend-screen filter blur-[150px] opacity-70 pointer-events-none" />
 
-      <div className="trio-auth-content w-full max-w-md animate-fade-in-up z-10">
+      <AuthIntro />
+      <div className="auth-panel w-full animate-fade-in-up z-10 px-4 py-12 sm:px-8 lg:px-12">
         {/* ── Logo e Cabeçalho ────────────────────────────────────────── */}
         <div className="text-center mb-8">
           <div className="flex flex-col items-center justify-center gap-2 mb-4">
             <img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="Símbolo TRIO" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
-            <h1 className="text-4xl font-bold text-white tracking-[-.07em] leading-none mt-2">trio<span className="text-[#d9fb72]">.</span></h1>
+            <h1 className="text-3xl font-bold text-white tracking-widest leading-none mt-2">TRIO</h1>
           </div>
-          <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">
+          <p className="text-sm font-medium text-[#9dac96] uppercase tracking-widest">
             Acesse seu espaço financeiro
           </p>
         </div>
 
         {/* ── Card do Formulário (Glassmorphism) ────────────────────────── */}
-        <div className="bg-slate-900/50 backdrop-blur-3xl rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+        <div className="bg-[#1b271d] backdrop-blur-3xl rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
           {/* Alerta de Validação / Erro */}
           {errorMessage && (
             <div
@@ -202,9 +202,9 @@ export default function Login() {
               disabled={loading}
               className="
                 flex items-center justify-center gap-2 w-full mt-2 py-3.5 px-4 rounded-xl
-                bg-blue-600 hover:bg-blue-500 active:scale-[0.98]
-                text-white text-sm font-bold shadow-lg shadow-blue-500/30 ring-1 ring-blue-500/50
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900
+                bg-brand-400 hover:bg-brand-300 active:scale-[0.98]
+                text-[#101711] text-sm font-bold shadow-lg shadow-brand-500/20 ring-1 ring-brand-400/50
+                focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-[#1b271d]
                 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none
                 transition-all duration-200 cursor-pointer uppercase tracking-widest
               "

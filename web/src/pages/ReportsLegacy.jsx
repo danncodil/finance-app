@@ -101,7 +101,7 @@ export default function Reports() {
   }, [loadReports]);
 
   return (
-    <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+    <div className="trio-page space-y-6">
       {/* ── Cabeçalho e Filtros ──────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

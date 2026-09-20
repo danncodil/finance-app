@@ -1,14 +1,13 @@
 // src/pages/Dashboard.jsx
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Wallet, TrendingUp, TrendingDown, Plus, Briefcase, ArrowUpRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Wallet, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import SummaryCard from "../components/SummaryCard";
 import RecentTransactions from "../components/RecentTransactions";
 import QuickActions from "../components/QuickActions";
 import TransactionModal from "../components/TransactionModal";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
-import { transactionService, categoryService, goalService, projectService, gamificationService } from "../services/api";
+import { transactionService, categoryService, reportService, goalService, gamificationService } from "../services/api";
 import {
   AreaChart,
   Area,
@@ -21,7 +20,7 @@ import {
 
 export default function Dashboard() {
   const { logout } = useAuth();
-  const { currentProfile, isBusiness } = useProfile();
+  const { currentProfile } = useProfile();
   const requestId = useRef(0);
   const [errorAlert, setErrorAlert] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +29,6 @@ export default function Dashboard() {
   const [categories, setCategories] = useState([]);
   const [monthlyFlow, setMonthlyFlow] = useState([]);
   const [goals, setGoals] = useState([]); // GAMIFICAÇÃO: Estado para as metas
-  const [projects, setProjects] = useState([]);
   const [unlockedBadges, setUnlockedBadges] = useState([]);
   const [userLevel, setUserLevel] = useState(1);
   const [userXp, setUserXp] = useState(0);
@@ -50,18 +48,16 @@ export default function Dashboard() {
       setLoading(true);
       setErrorAlert(null);
       const date = new Date();
-      const [catsRes, txRes, goalsRes, projectsRes, statusRes] = await Promise.all([
+      const [catsRes, txRes, goalsRes, statusRes] = await Promise.all([
         categoryService.list(currentProfile),
         transactionService.list(currentProfile),
-        currentProfile === "personal" ? goalService.list(currentProfile) : Promise.resolve([]),
-        currentProfile === "business" ? projectService.list() : Promise.resolve([]),
+        goalService.list(currentProfile),
         gamificationService.getStatus()
       ]);
 
       if (id !== requestId.current) return;
       setCategories(catsRes || []);
       setGoals(goalsRes || []);
-      setProjects(Array.isArray(projectsRes) ? projectsRes : (projectsRes?.projects || []));
       
       const currentXp = statusRes?.xp_points || 0;
       
@@ -160,34 +156,15 @@ export default function Dashboard() {
   }, [transactions, categories]);
 
   return (
-    <div className="trio-dashboard px-4 sm:px-8 py-6 sm:py-8 max-w-[1440px] mx-auto relative min-h-full pb-24 sm:pb-10">
+    <div className="trio-page relative min-h-full space-y-6 pb-24 sm:pb-8">
       {errorAlert && <p role="alert" className="text-rose-600">{errorAlert}</p>}
       {/* ── Header da página ──────────────────────────────────────── */}
-      <header className="trio-page-header relative flex flex-col sm:flex-row sm:items-end justify-between gap-6 overflow-hidden">
-        <span className="trio-hero-orbit" aria-hidden="true" />
-        <div className="relative z-10">
-          <p className="trio-eyebrow mb-5">TRIO <span aria-hidden="true">✳</span> SEU PANORAMA FINANCEIRO</p>
-          <h1 className="trio-hero-title max-w-[660px] text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.07em] leading-[.98]">
-            Tudo em <em>perspectiva.</em>
-          </h1>
-          <p className="trio-hero-subtitle text-sm mt-6">
-            Um olhar claro para suas finanças em{" "}
-            <span className="font-semibold">
-              {new Date().toLocaleDateString("pt-BR", {
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
-          </p>
+      <header className="trio-aurora trio-shine trio-enter relative overflow-hidden rounded-[32px] border border-white/[.09] p-7 sm:p-10">
+        <div className="relative z-10 flex flex-col justify-between gap-8 sm:flex-row sm:items-end">
+          <div><p className="trio-kicker">TRIO · PANORAMA FINANCEIRO</p><h1 className="trio-title mt-4 max-w-2xl text-4xl leading-[.92] text-[#f5f7f1] sm:text-6xl">Tudo em <span className="text-brand-400">perspectiva.</span></h1><p className="mt-5 max-w-lg text-base leading-relaxed text-[#bdc8b8]">Um retrato claro das suas finanças em <span className="font-semibold text-[#f5f7f1] capitalize">{new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</span>.</p></div>
+          <button onClick={() => setIsModalOpen(true)} className="trio-button inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all active:scale-[.98]"><Plus className="h-4 w-4" />Novo lançamento</button>
         </div>
-
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="trio-primary-action relative z-10 inline-flex items-center justify-center gap-3 px-5 py-3 text-sm font-bold transition-transform duration-200 cursor-pointer w-auto"
-        >
-          <span className="grid size-7 place-items-center rounded-full bg-black/10"><Plus className="w-4 h-4" /></span>
-          Novo lançamento
-        </button>
+        <div className="pointer-events-none absolute -right-16 -bottom-32 h-96 w-96 rounded-full border border-brand-300/25" /><div className="pointer-events-none absolute -right-4 -bottom-16 h-72 w-72 rounded-full border border-brand-300/15" />
       </header>
 
       {loading ? (
@@ -197,12 +174,11 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          {/* ── Bento Grid: Cards de Resumo ────────────────────────────── */}
           <section
             id="summary-cards"
-            className="trio-summary-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"
+            className="grid grid-cols-1 gap-4 md:grid-cols-12"
           >
-            <div className="sm:col-span-2 lg:col-span-2 h-full">
+            <div className="md:col-span-6">
               <SummaryCard
                 title="Saldo Geral"
                 value={summary.balance}
@@ -210,10 +186,10 @@ export default function Dashboard() {
                 icon={Wallet}
                 trend={summary.balanceTrend}
                 delay={0}
-                isGiant={true}
+                isGiant
               />
             </div>
-            <div className="sm:col-span-2 lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-5 h-full">
+            <div className="grid gap-4 md:col-span-6 md:grid-cols-2">
               <SummaryCard
                 title="Total de Receitas"
                 value={summary.income}
@@ -234,8 +210,8 @@ export default function Dashboard() {
           </section>
 
           {/* ── Gráfico de Fluxo de Caixa (Recharts) ─────────────────── */}
-          {transactions.length > 0 && monthlyFlow.length > 0 && (
-            <section className="trio-chart bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-card border border-slate-100 dark:border-white/5 transition-colors duration-200 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+          {monthlyFlow.length > 0 && (
+            <section className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-card border border-slate-100 dark:border-white/5 transition-colors duration-200 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -298,25 +274,15 @@ export default function Dashboard() {
           )}
 
           {/* ── Ações rápidas ─────────────────────────────────────────── */}
-          <section className="trio-actions">
+          <section>
             <QuickActions />
           </section>
 
           {/* ── Gamificação: Metas e Conquistas ───────────────────────── */}
-          <div className="trio-progress grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: "400ms" }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: "400ms" }}>
             
             {/* Metas em Destaque (Barras Luminosas) */}
             <section className="bg-white dark:bg-slate-900/40 rounded-3xl dark:backdrop-blur-xl border border-slate-100 dark:border-white/5 shadow-card p-6 sm:p-7 transition-colors duration-200 flex flex-col">
-              {isBusiness ? <>
-                <div className="flex items-center justify-between gap-3 mb-6">
-                  <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2"><Briefcase size={18} className="text-brand-600" /> Projetos em destaque</h2>
-                  <Link to="/projects" className="text-xs font-semibold text-brand-700 dark:text-brand-300 inline-flex items-center gap-1">Ver todos <ArrowUpRight size={14} /></Link>
-                </div>
-                {projects.length ? <ul className="space-y-3">{projects.slice(0, 3).map(project => <li key={project.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 dark:border-slate-700 p-3.5">
-                  <div className="min-w-0"><p className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">{project.name}</p><p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ active: "Em andamento", completed: "Concluído", paused: "Pausado", cancelled: "Cancelado" }[project.status] || project.status}</p></div>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums whitespace-nowrap">{project.budget ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(project.budget) : "—"}</span>
-                </li>)}</ul> : <p className="text-sm text-slate-500 dark:text-slate-400 py-6">Nenhum projeto cadastrado.</p>}
-              </> : <>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>🎯</span> Progresso das Metas
@@ -359,7 +325,6 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              </>}
             </section>
 
             {/* Conquistas (Selo Gamificação) */}
@@ -392,15 +357,15 @@ export default function Dashboard() {
                     );
                   } else {
                     return (
-                      <div key={achieve.id} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 grayscale transition-colors">
-                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-2xl mb-2 relative">
+                      <div key={achieve.id} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-800 border border-slate-700 grayscale opacity-40 transition-all">
+                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-700 text-2xl mb-2 relative">
                           {achieve.icon}
                           <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center">
                             <span className="text-[10px] text-white">🔒</span>
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 text-center">{achieve.name}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 text-center mt-1">{achieve.description}</span>
+                        <span className="text-xs font-bold text-slate-500 text-center">{achieve.name}</span>
+                        <span className="text-[10px] text-slate-400 text-center mt-1">{achieve.description}</span>
                       </div>
                     );
                   }
@@ -410,7 +375,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Conteúdo principal ─────────────────────────────────────── */}
-          <div className="trio-activity grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Transações recentes — ocupa 2 colunas no desktop */}
             <div className="lg:col-span-2">
               <RecentTransactions transactions={transactions} categories={categories} />
@@ -455,7 +420,7 @@ export default function Dashboard() {
               </ul>
 
               {/* Alerta amarelo informativo */}
-              {summary.income > 0 && summary.expense / summary.income >= 0.7 && <div
+              <div
                 className="
                   mt-6 flex items-start gap-2.5 p-3.5 rounded-xl
                   bg-accent-50 dark:bg-accent-950/60 ring-1 ring-accent-200 dark:ring-accent-800/60
@@ -467,7 +432,7 @@ export default function Dashboard() {
                 <p className="text-xs text-accent-800 dark:text-accent-300 font-medium leading-relaxed">
                   Suas despesas representam grande parte do seu orçamento. Mantenha os lançamentos atualizados para melhor controle.
                 </p>
-              </div>}
+              </div>
             </aside>
           </div>
         </>
@@ -476,7 +441,7 @@ export default function Dashboard() {
       {/* Mobile FAB: Novo Lançamento */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="hidden fixed bottom-[84px] right-4 z-40 items-center justify-center w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        className="sm:hidden fixed bottom-[84px] right-4 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         aria-label="Novo Lançamento"
       >
         <Plus className="w-6 h-6" />

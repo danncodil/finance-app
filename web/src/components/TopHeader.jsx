@@ -80,12 +80,9 @@ export default function TopHeader() {
   if (!user) return null;
 
   return (
-    <header className="trio-top-header hidden md:flex items-center justify-between px-8 py-4 z-40 w-full relative">
-      {/* Spacer esquerdo para centralização perfeita */}
-      <div className="flex-1"><button type="button" onClick={() => window.dispatchEvent(new Event("trio:open-command"))} className="trio-search-trigger inline-flex items-center gap-2 px-4 py-2 text-sm" aria-label="Buscar páginas"><Search size={17} /><span>Buscar página</span><kbd className="ml-6 text-[11px]">Ctrl K</kbd></button></div>
-
-      {/* Elemento Centralizado */}
-      <div className="flex items-center justify-center shrink-0">
+    <header className="hidden md:flex items-center justify-between px-7 py-4 border-b border-white/[.08] bg-[#151f16]/70 backdrop-blur-xl z-40 w-full relative">
+      <button onClick={() => window.dispatchEvent(new Event("trio:command"))} className="flex w-[250px] items-center gap-3 rounded-2xl border border-white/[.09] bg-white/[.045] px-3.5 py-2.5 text-left text-sm text-[#bfcabb] transition hover:bg-white/[.08]"><Search className="h-4 w-4 text-brand-400" /><span className="flex-1">Buscar página</span><kbd className="rounded-md border border-white/[.13] px-1.5 py-0.5 text-[10px] text-[#aeb8aa]">Ctrl K</kbd></button>
+      <div className="flex items-center justify-center shrink-0 absolute left-1/2 -translate-x-1/2">
         <ProfileToggle />
       </div>
 
@@ -94,9 +91,9 @@ export default function TopHeader() {
         <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-3 p-1.5 pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+          className="flex items-center gap-3 p-1.5 pr-3 rounded-full hover:bg-white/[.06] transition-colors cursor-pointer border border-transparent hover:border-white/[.1]"
         >
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold overflow-hidden border-2 border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-[#17210e] font-bold overflow-hidden border-2 border-[#294229] shadow-sm">
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
             ) : (
@@ -104,18 +101,18 @@ export default function TopHeader() {
             )}
           </div>
           <div className="text-left hidden lg:block">
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none">
+            <p className="text-sm font-semibold text-[#edf1e9] leading-none">
               {user.name || "Usuário"}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1 leading-none">
+            <p className="text-[11px] text-[#9dac96] mt-1 leading-none">
               Minha Conta
             </p>
           </div>
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-4 h-4 text-[#9dac96] transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
         </button>
 
         {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-fade-in-up">
+          <div className="absolute right-0 mt-2 w-72 bg-[#172118] rounded-2xl shadow-xl border border-white/[.1] overflow-hidden z-50 trio-enter">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800">
               <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
                 {user.name || "Usuário"}

@@ -1,16 +1,12 @@
-import { ArrowUpRight, CircleDollarSign, Layers3, Target } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, CircleDollarSign, Target } from "lucide-react";
 
-export default function AuthIntro() {
-  return <div className="trio-auth-intro hidden lg:flex flex-col justify-between" aria-label="Sobre o TRIO">
-    <div className="flex items-center gap-2 text-sm font-bold tracking-[-.03em]"><span className="trio-auth-intro-mark grid size-9 place-items-center rounded-full"><img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="" className="size-6 object-contain" /></span> trio.</div>
-    <div>
-      <p className="text-xs font-bold tracking-[.2em] uppercase">O seu espaço financeiro</p>
-      <h2 className="mt-6 max-w-[610px] text-[clamp(3.7rem,5vw,6.5rem)] font-semibold leading-[.94] tracking-[-.085em]">Organize hoje.<br /><em>Enxergue além.</em></h2>
-      <p className="mt-7 max-w-[420px] text-base leading-relaxed">Receitas, despesas, metas e projetos reunidos para você tomar decisões com mais clareza.</p>
-      <div className="mt-9 flex flex-wrap gap-2 text-xs font-semibold">
-        <span><CircleDollarSign size={16} /> Lançamentos</span><span><Target size={16} /> Metas</span><span><Layers3 size={16} /> Projetos</span>
-      </div>
-    </div>
-    <span className="flex items-center gap-2 text-xs font-bold">UM NOVO OLHAR PARA O SEU DINHEIRO <ArrowUpRight size={16} /></span>
-  </div>;
+const points = [[CircleDollarSign, "Lançamentos"], [Target, "Metas"], [BriefcaseBusiness, "Projetos"]];
+
+export default function AuthIntro({ register = false }) {
+  return <section className="auth-intro relative hidden min-h-screen flex-col justify-between overflow-hidden p-10 lg:flex">
+    <div><div className="flex items-center gap-3"><img src={`${import.meta.env.BASE_URL}simbolo-trio.png`} alt="TRIO" className="h-11 w-11 object-contain" /><span className="font-display text-3xl font-bold tracking-[-.1em] text-[#14200e]">trio<span className="text-[#5e8d1e]">.</span></span></div></div>
+    <div className="relative z-10 max-w-xl"><p className="trio-kicker text-[#314d13]">Seu espaço financeiro</p><h1 className="mt-7 font-display text-6xl font-semibold leading-[.91] tracking-[-.075em] text-[#101711]">{register ? <>Comece com <span className="text-[#4d7219]">clareza.</span></> : <>Organize hoje.<br />Enxergue <span className="text-[#4d7219]">além.</span></>}</h1><p className="mt-7 max-w-md text-lg leading-relaxed text-[#30422a]">Receitas, despesas, metas e projetos reunidos para você decidir com mais segurança.</p><div className="mt-9 flex flex-wrap gap-3">{points.map(([Icon, label]) => <span key={label} className="inline-flex items-center gap-2 rounded-full border border-[#7fa644]/50 px-4 py-2 text-sm font-semibold text-[#14200e]"><Icon className="h-4 w-4" />{label}</span>)}</div></div>
+    <p className="relative z-10 flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#213415]">Um novo olhar para o seu dinheiro <ArrowUpRight className="h-4 w-4" /></p>
+    <div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" />
+  </section>;
 }

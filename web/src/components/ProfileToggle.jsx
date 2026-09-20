@@ -1,13 +1,38 @@
 import { useProfile } from "../context/ProfileContext";
 import { User, Briefcase } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 
 export default function ProfileToggle() {
   const { toggleProfile, isBusiness } = useProfile();
-  const reduceMotion = useReducedMotion();
-  return <div className="trio-profile-toggle relative flex items-center rounded-full p-1" role="group" aria-label="Perfil financeiro">
-    <motion.span className="trio-profile-indicator absolute inset-y-1 w-[calc(50%-4px)] rounded-full" animate={{ x: isBusiness ? "100%" : "0%" }} transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 430, damping: 32 }} aria-hidden="true" />
-    <button type="button" aria-pressed={!isBusiness} onClick={() => { if (isBusiness) toggleProfile(); }} className={`relative z-10 flex w-[108px] items-center justify-center gap-2 rounded-full py-2 text-xs font-semibold ${!isBusiness ? "is-selected" : ""}`}><User size={15} /> Pessoal</button>
-    <button type="button" aria-pressed={isBusiness} onClick={() => { if (!isBusiness) toggleProfile(); }} className={`relative z-10 flex w-[108px] items-center justify-center gap-2 rounded-full py-2 text-xs font-semibold ${isBusiness ? "is-selected" : ""}`}><Briefcase size={15} /> Negócio</button>
-  </div>;
+
+  return (
+    <div className="relative flex items-center p-1 bg-white/[.07] backdrop-blur-md rounded-full w-[240px] h-11 border border-white/[.1]">
+      {/* Indicador de Fundo Deslizante (A Mágica da Animação) */}
+      <div
+        className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) shadow-md
+          ${isBusiness ? "translate-x-full bg-brand-400" : "translate-x-0 bg-brand-400"}`}
+      />
+
+      {/* Botão Vida Pessoal */}
+      <button
+        onClick={() => { if (isBusiness) toggleProfile(); }}
+        className={`relative z-10 flex items-center justify-center gap-2 flex-1 py-1.5 text-xs font-bold rounded-full transition-colors duration-300 cursor-pointer
+          ${!isBusiness ? "text-[#11190f]" : "text-[#aab5a6] hover:text-white"}
+        `}
+      >
+        <User className={`w-4 h-4 transition-transform duration-300 ${!isBusiness ? "scale-110" : ""}`} />
+        Pessoal
+      </button>
+
+      {/* Botão Meu Negócio */}
+      <button
+        onClick={() => { if (!isBusiness) toggleProfile(); }}
+        className={`relative z-10 flex items-center justify-center gap-2 flex-1 py-1.5 text-xs font-bold rounded-full transition-colors duration-300 cursor-pointer
+          ${isBusiness ? "text-[#11190f]" : "text-[#aab5a6] hover:text-white"}
+        `}
+      >
+        <Briefcase className={`w-4 h-4 transition-transform duration-300 ${isBusiness ? "scale-110" : ""}`} />
+        Negócio
+      </button>
+    </div>
+  );
 }

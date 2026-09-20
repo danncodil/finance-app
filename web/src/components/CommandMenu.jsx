@@ -1,79 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Search, LayoutDashboard, ArrowLeftRight, Tags, Briefcase, Target, BarChart3, Settings, ArrowUpRight } from "lucide-react";
-import { useProfile } from "../context/ProfileContext";
+import { ArrowRight, BarChart3, LayoutDashboard, Search, Settings, Tags, Target, X, ArrowLeftRight, Briefcase } from "lucide-react";
 
-const pages = [
-  { label: "Visão geral", path: "/", icon: LayoutDashboard },
-  { label: "Lançamentos", path: "/transactions", icon: ArrowLeftRight },
-  { label: "Categorias", path: "/categories", icon: Tags },
-  { label: "Projetos", path: "/projects", icon: Briefcase, business: true },
-  { label: "Metas", path: "/goals", icon: Target, personal: true },
-  { label: "Relatórios", path: "/reports", icon: BarChart3 },
-  { label: "Configurações", path: "/settings", icon: Settings },
+const commands = [
+  ["Visão geral", "/", LayoutDashboard], ["Lançamentos", "/transactions", ArrowLeftRight], ["Categorias", "/categories", Tags], ["Metas", "/goals", Target], ["Projetos", "/projects", Briefcase], ["Relatórios", "/reports", BarChart3], ["Configurações", "/settings", Settings],
 ];
 
 export default function CommandMenu() {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(0);
-  const { isBusiness } = useProfile();
-  const navigate = useNavigate();
-  const inputRef = useRef(null);
-  const reduceMotion = useReducedMotion();
-  const available = pages.filter(page => (!page.business || isBusiness) && (!page.personal || !isBusiness));
-  const results = available.filter(page => page.label.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")));
-
-  useEffect(() => {
-    const onKey = event => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setOpen(value => !value);
-      }
-      if (event.key === "Escape") setOpen(false);
-    };
-    const onOpen = () => setOpen(true);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("trio:open-command", onOpen);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("trio:open-command", onOpen);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    setQuery("");
-    setSelected(0);
-    inputRef.current?.focus();
-  }, [open]);
-
-  const choose = page => {
-    navigate(page.path);
-    setOpen(false);
-  };
-
-  return <AnimatePresence>
-    {open && <motion.div className="trio-command-backdrop fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[14vh]" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .16 }} onMouseDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
-      <motion.div role="dialog" aria-modal="true" aria-label="Buscar páginas" className="trio-command-panel w-full max-w-[560px] overflow-hidden" initial={reduceMotion ? false : { opacity: 0, y: -14, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: .98 }} transition={{ duration: .2, ease: "easeOut" }}>
-        <div className="flex items-center gap-3 border-b border-black/10 px-5 py-5">
-          <Search size={21} aria-hidden="true" />
-          <input ref={inputRef} className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-stone-500" placeholder="Para onde vamos?" aria-label="Buscar página" value={query} onChange={event => { setQuery(event.target.value); setSelected(0); }} onKeyDown={event => {
-            if (event.key === "ArrowDown") { event.preventDefault(); setSelected(value => Math.min(value + 1, results.length - 1)); }
-            if (event.key === "ArrowUp") { event.preventDefault(); setSelected(value => Math.max(value - 1, 0)); }
-            if (event.key === "Enter" && results[selected]) choose(results[selected]);
-          }} />
-          <kbd className="rounded border border-black/15 px-1.5 py-0.5 text-[11px] text-stone-500">ESC</kbd>
-        </div>
-        <div className="max-h-[50vh] overflow-y-auto p-2">
-          <p className="px-3 pb-2 pt-3 text-[10px] font-bold uppercase tracking-[.2em] text-stone-500">Páginas</p>
-          {results.length ? results.map((page, index) => <button key={page.path} type="button" onMouseEnter={() => setSelected(index)} onClick={() => choose(page)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold ${selected === index ? "bg-[#d9fb72] text-[#1c211a]" : "hover:bg-black/5"}`}>
-            <page.icon size={18} aria-hidden="true" /><span className="flex-1">{page.label}</span><ArrowUpRight size={16} aria-hidden="true" />
-          </button>) : <p className="px-3 py-8 text-sm text-stone-500">Nenhuma página encontrada.</p>}
-        </div>
-        <div className="border-t border-black/10 px-5 py-3 text-xs text-stone-500">Use ↑ ↓ para navegar e Enter para abrir</div>
-      </motion.div>
-    </motion.div>}
-  </AnimatePresence>;
+  const navigate = useNavigate(); const [open, setOpen] = useState(false); const [query, setQuery] = useState("");
+  useEffect(() => { const handler = (event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setOpen(v => !v); } if (event.key === "Escape") setOpen(false); }; const external = () => setOpen(true); window.addEventListener("keydown", handler); window.addEventListener("trio:command", external); return () => { window.removeEventListener("keydown", handler); window.removeEventListener("trio:command", external); }; }, []);
+  const filtered = useMemo(() => commands.filter(([label]) => label.toLowerCase().includes(query.toLowerCase())), [query]);
+  if (!open) return null;
+  const go = (path) => { navigate(path); setOpen(false); setQuery(""); };
+  return <div role="dialog" aria-modal="true" aria-label="Busca rápida" onMouseDown={() => setOpen(false)} className="fixed inset-0 z-[100] grid place-items-start pt-[18vh] bg-[#080d08]/65 backdrop-blur-sm px-4">
+    <div onMouseDown={e => e.stopPropagation()} className="w-full max-w-xl rounded-3xl border border-white/[.12] bg-[#172118] shadow-[0_30px_80px_rgba(0,0,0,.45)] overflow-hidden trio-enter">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[.08]"><Search className="w-5 h-5 text-brand-400" /><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Para onde você quer ir?" className="flex-1 bg-transparent outline-none text-white placeholder:text-[#809080]" /><button onClick={() => setOpen(false)} className="rounded-lg p-1 text-[#9dac96] hover:text-white"><X className="w-5 h-5" /></button></div>
+      <div className="p-2">{filtered.map(([label, path, Icon]) => <button key={path} onClick={() => go(path)} className="w-full flex items-center gap-3 rounded-2xl p-3 text-left text-[#dce5d8] hover:bg-brand-400 hover:text-[#101711] transition-colors"><span className="grid place-items-center w-9 h-9 rounded-xl bg-white/[.06]"><Icon className="w-4 h-4" /></span><span className="flex-1 font-medium">{label}</span><ArrowRight className="w-4 h-4 opacity-55" /></button>)}</div>
+      <div className="px-5 py-3 border-t border-white/[.08] text-xs text-[#9dac96]">Use <kbd className="rounded bg-white/[.08] px-1.5 py-0.5">Esc</kbd> para fechar</div>
+    </div>
+  </div>;
 }

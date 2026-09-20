@@ -194,7 +194,7 @@ export default function Projects() {
   }
 
   return (
-    <div className="trio-page px-4 sm:px-8 py-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
+    <div className="trio-page space-y-6">
       {/* ── Top Header ────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
